@@ -8,6 +8,7 @@ import {
   ShieldCheck, CheckCircle2, Briefcase
 } from 'lucide-react'
 import { registerSchema } from '../lib/schemas.js'
+import API from '../api.js'
 
 /* ─── Password strength ──────────────────────────── */
 function getStrength(password) {
@@ -148,17 +149,35 @@ export default function Register() {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '', agreeTerms: false },
+    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '', agreeTerms: false ,role:''},
   })
 
   const passwordValue = watch('password', '')
   const strength = getStrength(passwordValue)
 
-  const onSubmit = async (data) => {
-    await new Promise((r) => setTimeout(r, 1600))
-    console.log('Register payload:', { ...data, role }) // role included in payload
+  const handleRegister = async (data) => {
+
+     try {
+    const payload = {
+      name: data.fullName,
+      email: data.email,
+      password: data.password,
+      role: role 
+    }
+
+    const res = await API.post('/auth/register', payload)
+    console.log(res)
+
     setSubmitSuccess(true)
     setTimeout(() => navigate('/login'), 1500)
+
+  } catch (error) {
+    console.error("ERROR:", error.response?.data)
+  }
+    // await new Promise((r) => setTimeout(r, 1600))
+    // console.log('Register payload:', { ...data, role }) // role included in payload
+    // setSubmitSuccess(true)
+    // setTimeout(() => navigate('/login'), 1500)
   }
 
   const passwordRules = [
@@ -240,7 +259,7 @@ export default function Register() {
                 <p className="text-xs text-gray-400">Redirecting to sign in…</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+              <form onSubmit={handleSubmit(handleRegister)} noValidate className="space-y-4">
 
                 {/* ── Role selector ── */}
                 <RoleSelector value={role} onChange={setRole} />

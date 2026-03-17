@@ -7,6 +7,7 @@ import {
   AlertCircle, ArrowRight, ChevronLeft, Loader2
 } from 'lucide-react'
 import { loginSchema } from '../lib/schemas.js'
+import API from '../api.js'
 
 /* ─── Field component ────────────────────────────── */
 function Field({ label, id, icon: Icon, type = 'text', placeholder, register, error, rightSlot }) {
@@ -67,12 +68,28 @@ export default function Login() {
     defaultValues: { email: '', password: '', rememberMe: false },
   })
 
-  const onSubmit = async (data) => {
+  const handleLogin = async (data) => {
     // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500))
-    console.log('Login payload:', data)
+
+     try {
+    const payload = {
+      email: data.email,
+      password: data.password
+    }
+
+    const res = await API.post('/auth/login', payload)
+    console.log(res)
+    
     setSubmitSuccess(true)
-    setTimeout(() => navigate('/'), 1200)
+    setTimeout(() => navigate('/'), 1500)
+
+  } catch (error) {
+    console.error("ERROR:", error.response?.data)
+  }
+    // await new Promise((r) => setTimeout(r, 1500))
+    // console.log('Login payload:', data)
+    // setSubmitSuccess(true)
+    // setTimeout(() => navigate('/'), 1200)
   }
 
   return (
@@ -166,7 +183,7 @@ export default function Login() {
                 <p className="text-xs text-gray-400">Redirecting to dashboard…</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+              <form onSubmit={handleSubmit(handleLogin)} noValidate className="space-y-5">
 
                 <Field
                   label="Email Address"
