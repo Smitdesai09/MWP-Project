@@ -198,7 +198,12 @@ export default function Login() {
                   }
                 />
 
-                {/* Remember me + forgot */}
+                  {/*  forgot password */}
+                <div className="flex justify-end">
+                  <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-gray-900 hover:underline transition-colors">
+                        Forgot password?
+                  </Link>
+                </div>
                 {/* <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer group">
                     <input
@@ -212,6 +217,7 @@ export default function Login() {
                     Forgot password?
                   </a>
                 </div> */}
+                  
 
                 {/* Submit */}
                 <button
