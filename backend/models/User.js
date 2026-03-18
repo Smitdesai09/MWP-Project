@@ -14,10 +14,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    role: {
+    roll: {
         type: String,
-        enum: ['user', 'advisor', 'admin'],
-        default: 'user'
+        enum: ['client', 'advisor', 'admin'],
+        default: 'client'
+    },
+    resetPasswordToken: {
+        type: String,
+    },
+    resetPasswordExpire: {
+        type: Date,
     }
 }, { timestamps: true })
 
