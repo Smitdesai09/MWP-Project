@@ -7,50 +7,50 @@ const sendMail = require('../utils/sendMail')
 /* ===========================
    REGISTER
 =========================== */
-exports.register = async (req,res) =>{
-    try{
-        const {name,email,password,roll} = req.body
+exports.register = async (req, res) => {
+    try {
+        const { name, email, password, roll } = req.body
 
-        if(!name || !email || !password){
+        if (!name || !email || !password) {
             return res.status(400).json({
-                Success:false,
-                message:'Name, email and password are required'
+                Success: false,
+                message: 'Name, email and password are required'
             })
         }
 
-        const existUser = await UserModel.findOne({email})
+        const existUser = await UserModel.findOne({ email })
 
-        if(existUser){
+        if (existUser) {
             return res.status(409).json({
-                Success:false,
-                message:'User Already Exists..!'
+                Success: false,
+                message: 'User Already Exists..!'
             })
         }
 
-        const hashPassword = await bcrypt.hash(password,10)
+        const hashPassword = await bcrypt.hash(password, 10)
 
         const newuser = await UserModel.create({
             name,
             email,
-            password:hashPassword,
+            password: hashPassword,
             roll
         })
 
         return res.status(201).json({
-            Success:true,
-            message:'Register Successfully..!',
-            user:{
-                id:newuser._id,
-                name:newuser.name,
-                email:newuser.email,
-                roll:newuser.roll
+            Success: true,
+            message: 'Register Successfully..!',
+            user: {
+                id: newuser._id,
+                name: newuser.name,
+                email: newuser.email,
+                roll: newuser.roll
             }
         })
 
-    }catch(err){
+    } catch (err) {
         return res.status(500).json({
-            Success:false,
-            message:err.message
+            Success: false,
+            message: err.message
         })
     }
 }
@@ -58,68 +58,68 @@ exports.register = async (req,res) =>{
 /* ===========================
    LOGIN
 =========================== */
-exports.login = async (req,res) =>{
-    try{
-        const {email,password} = req.body
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body
 
-        if(!email || !password){
+        if (!email || !password) {
             return res.status(400).json({
-                Success:false,
-                message:'Email and password are required'
+                Success: false,
+                message: 'Email and password are required'
             })
         }
 
-        const existUser = await UserModel.findOne({email})
+        const existUser = await UserModel.findOne({ email })
 
-        if(!existUser){
+        if (!existUser) {
             return res.status(403).json({
-                Success:false,
-                message:'Email or Password Wrong..!'
+                Success: false,
+                message: 'Email or Password Wrong..!'
             })
         }
 
-        const isMatch = await bcrypt.compare(password,existUser.password)
+        const isMatch = await bcrypt.compare(password, existUser.password)
 
-        if(!isMatch){
+        if (!isMatch) {
             return res.status(403).json({
-                Success:false,
-                message:'Email or Password Wrong..!'
+                Success: false,
+                message: 'Email or Password Wrong..!'
             })
         }
 
         const token = jwt.sign(
             {
-                email:existUser.email,
-                id:existUser._id,
-                roll:existUser.roll
+                email: existUser.email,
+                id: existUser._id,
+                roll: existUser.roll
             },
             process.env.S_KEY,
-            {expiresIn:'15m'}
+            { expiresIn: '15m' }
         )
 
-        res.cookie('token',token,{
-            httpOnly:true,
-            secure:false, // true in production with https
-            sameSite:'lax',
-            maxAge:15*60*1000
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false, // true in production with https
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000
         })
 
         return res.status(200).json({
-            Success:true,
-            message:'Login Success',
+            Success: true,
+            message: 'Login Success',
             token,
-            user:{
-                id:existUser._id,
-                name:existUser.name,
-                email:existUser.email,
-                roll:existUser.roll
+            user: {
+                id: existUser._id,
+                name: existUser.name,
+                email: existUser.email,
+                roll: existUser.roll
             }
         })
 
-    }catch(err){
+    } catch (err) {
         return res.status(500).json({
-            Success:false,
-            message:err.message
+            Success: false,
+            message: err.message
         })
     }
 }
@@ -127,17 +127,17 @@ exports.login = async (req,res) =>{
 /* ===========================
    LOGOUT
 =========================== */
-exports.logout = (req,res) =>{
-    try{
+exports.logout = (req, res) => {
+    try {
         res.clearCookie('token')
         return res.status(200).json({
-            Success:true,
-            message:'Logout Successfully..!'
+            Success: true,
+            message: 'Logout Successfully..!'
         })
-    }catch(err){
+    } catch (err) {
         return res.status(500).json({
-            Success:false,
-            message:err.message
+            Success: false,
+            message: err.message
         })
     }
 }
@@ -145,23 +145,23 @@ exports.logout = (req,res) =>{
 /* ===========================
    FORGOT PASSWORD (SECURE)
 =========================== */
-exports.forgotPassword = async (req,res) =>{
-    try{
-        const {email} = req.body
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body
 
-        if(!email){
+        if (!email) {
             return res.status(400).json({
-                Success:false,
-                message:'Email is required'
+                Success: false,
+                message: 'Email is required'
             })
         }
 
-        const user = await UserModel.findOne({email})
+        const user = await UserModel.findOne({ email })
 
-        if(!user){
+        if (!user) {
             return res.status(404).json({
-                Success:false,
-                message:'User not found'
+                Success: false,
+                message: 'User not found'
             })
         }
 
@@ -195,17 +195,17 @@ exports.forgotPassword = async (req,res) =>{
             <p>If you did not request this, please ignore this email.</p>
         `
 
-        await sendMail(user.email,'Reset Password',html)
+        await sendMail(user.email, 'Reset Password', html)
 
         return res.status(200).json({
-            Success:true,
-            message:'Password reset link sent to your email'
+            Success: true,
+            message: 'Password reset link sent to your email'
         })
 
-    }catch(err){
+    } catch (err) {
         return res.status(500).json({
-            Success:false,
-            message:err.message
+            Success: false,
+            message: err.message
         })
     }
 }
@@ -213,15 +213,15 @@ exports.forgotPassword = async (req,res) =>{
 /* ===========================
    RESET PASSWORD (SECURE)
 =========================== */
-exports.resetPassword = async (req,res) =>{
-    try{
-        const {token} = req.params
-        const {password} = req.body
+exports.resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params
+        const { password } = req.body
 
-        if(!password){
+        if (!password) {
             return res.status(400).json({
-                Success:false,
-                message:'New password is required'
+                Success: false,
+                message: 'New password is required'
             })
         }
 
@@ -237,15 +237,15 @@ exports.resetPassword = async (req,res) =>{
             resetPasswordExpire: { $gt: Date.now() }
         })
 
-        if(!user){
+        if (!user) {
             return res.status(400).json({
-                Success:false,
-                message:'Invalid or expired reset token'
+                Success: false,
+                message: 'Invalid or expired reset token'
             })
         }
 
         // 3. Update password
-        const hashPassword = await bcrypt.hash(password,10)
+        const hashPassword = await bcrypt.hash(password, 10)
         user.password = hashPassword
 
         // 4. Clear reset token fields (one-time use)
@@ -255,14 +255,14 @@ exports.resetPassword = async (req,res) =>{
         await user.save()
 
         return res.status(200).json({
-            Success:true,
-            message:'Password reset successful'
+            Success: true,
+            message: 'Password reset successful'
         })
 
-    }catch(err){
+    } catch (err) {
         return res.status(500).json({
-            Success:false,
-            message:err.message
+            Success: false,
+            message: err.message
         })
     }
 }
