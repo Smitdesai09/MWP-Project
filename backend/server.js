@@ -4,6 +4,8 @@ const cookiparser = require('cookie-parser')
 const connection = require('./config/connection')
 const dotenv = require('dotenv')
 const { Globallimiter } = require('./middlewares/RateLimiter')
+const auth = require('./routes/AuthRouter')
+const profile = require('./routes/ProfileRouter')
 
 dotenv.config()
 connection()
@@ -19,7 +21,8 @@ app.use(cookiparser())
 app.use(Globallimiter)
 
 // Auth Router
-app.use('/auth',require('./routes/AuthRouter'))
+app.use('/auth',auth)
+app.use('/profile',profile)
 
 
 const PORT = process.env.PORT || 5000
