@@ -9,7 +9,7 @@ const sendMail = require('../utils/sendMail')
 =========================== */
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, roll } = req.body
+        const { name, email, password, role } = req.body
 
         if (!name || !email || !password) {
             return res.status(400).json({
@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
             name,
             email,
             password: hashPassword,
-            roll
+            role
         })
 
         return res.status(201).json({
@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
                 id: newuser._id,
                 name: newuser.name,
                 email: newuser.email,
-                roll: newuser.roll
+                role: newuser.role
             }
         })
 
@@ -91,7 +91,7 @@ exports.login = async (req, res) => {
             {
                 email: existUser.email,
                 id: existUser._id,
-                roll: existUser.roll
+                role: existUser.role
             },
             process.env.S_KEY,
             { expiresIn: '15m' }
@@ -112,7 +112,7 @@ exports.login = async (req, res) => {
                 id: existUser._id,
                 name: existUser.name,
                 email: existUser.email,
-                roll: existUser.roll
+                role: existUser.role
             }
         })
 
