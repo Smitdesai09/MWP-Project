@@ -4,9 +4,6 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const sendMail = require('../utils/sendMail')
 
-/* ===========================
-   REGISTER
-=========================== */
 exports.register = async (req, res) => {
     try {
         const { name, email, password, roll } = req.body
@@ -55,9 +52,6 @@ exports.register = async (req, res) => {
     }
 }
 
-/* ===========================
-   LOGIN
-=========================== */
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -94,14 +88,14 @@ exports.login = async (req, res) => {
                 roll: existUser.roll
             },
             process.env.S_KEY,
-            { expiresIn: '15m' }
+            { expiresIn: '1d' }
         )
 
         res.cookie('token', token, {
             httpOnly: true,
             secure: false, // true in production with https
             sameSite: 'lax',
-            maxAge: 15 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000
         })
 
         return res.status(200).json({
@@ -124,9 +118,6 @@ exports.login = async (req, res) => {
     }
 }
 
-/* ===========================
-   LOGOUT
-=========================== */
 exports.logout = (req, res) => {
     try {
         res.clearCookie('token')
@@ -142,9 +133,6 @@ exports.logout = (req, res) => {
     }
 }
 
-/* ===========================
-   FORGOT PASSWORD (SECURE)
-=========================== */
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body
@@ -210,9 +198,6 @@ exports.forgotPassword = async (req, res) => {
     }
 }
 
-/* ===========================
-   RESET PASSWORD (SECURE)
-=========================== */
 exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params

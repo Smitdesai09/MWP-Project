@@ -23,7 +23,7 @@ exports.createOrSaveProfile = async (req,res)=>{
         const userId = req.user.id;
         const { age,dependents,incomeMonthly,answers } = req.body
         
-        const existingProfile = await profile.findOne({userId:userId})
+        const existingProfile = await profile.findOne({userId})
         if(existingProfile){
             return res.status(400).json({success:false,message:'Profile Already Exists..!'})
         }
@@ -62,7 +62,7 @@ exports.getProfile = async (req,res)=>{
     try{
         const userId = req.user.id;
     
-        const existingprofile = await profile.findOne({userId:userId})
+        const existingprofile = await profile.findOne({userId})
         if(!existingprofile){
             return res.status(404).json({success:false,message:'Profile not found..!'})
         }
@@ -82,7 +82,7 @@ exports.editProfile = async (req,res)=>{
         const userId = req.user.id;
         const { age,dependents,incomeMonthly,answers } = req.body;
 
-        const existprofile = await profile.findOne({userId:userId})
+        const existprofile = await profile.findOne({userId})
         if(!existprofile){
             return res.status(404).json({success:false,message:'Profile Not Found'})
         }
