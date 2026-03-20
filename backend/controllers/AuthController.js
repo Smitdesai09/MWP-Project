@@ -266,3 +266,35 @@ exports.resetPassword = async (req, res) => {
         })
     }
 }
+
+
+/* ===========================
+   GET ME
+=========================== */
+exports.getMe = async (req, res) => {
+    try {
+        // req.user = { id, email, role } from JWT
+        // fetch from DB to get name since its not in JWT
+        const user = await UserModel.findById(req.user.id).select('-password')
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        })
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message })
+    }
+}

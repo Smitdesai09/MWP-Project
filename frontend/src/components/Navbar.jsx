@@ -13,20 +13,32 @@ export default function Navbar() {
     { label: 'Testimonials', href: '#testimonials' },
   ]
 
+   const handleLogoClick = (e) => {
+    e.preventDefault()
+    if (location.pathname === '/') {
+      // Already on home page — just scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      // Navigate to home, then scroll to top
+      navigate('/')
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
+    }
+  }
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <a href="/" onClick={handleLogoClick} className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center group-hover:bg-gray-700 transition-colors duration-200">
               <TrendingUp size={16} color="white" strokeWidth={2.5} />
             </div>
             <span className="font-display text-[17px] font-bold text-gray-900 tracking-tight">
               Wealth <span className="font-normal text-gray-500">Planner</span>
             </span>
-          </Link>
+          </a>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">

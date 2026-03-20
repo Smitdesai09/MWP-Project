@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   Zap
 } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 const Badge = ({ children }) => (
   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full tracking-wide uppercase">
@@ -111,6 +113,13 @@ const TestimonialCard = ({ name, role, text, rating }) => (
 )
 
 export default function Home() {
+
+  const { user, loading } = useAuth() // 👈 add this
+
+  // 👇 add this block
+  if (loading) return null // or a spinner
+  if (user) return <Navigate to="/client/dashboard" replace />
+
   const features = [
     { icon: Wallet, title: 'Expense Tracking', description: 'Log income and expenses by category with smart monthly budget alerts and visual charts.' },
     { icon: Target, title: 'Goal Planning', description: 'Set financial goals with corpus targets. Get required SIP or lump-sum calculations instantly.' },
@@ -137,7 +146,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-4xl mx-auto text-center">
           <div className="animate-fade-up">
             <Badge>
