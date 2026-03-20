@@ -1,70 +1,16 @@
-# MyWealthPlanner — Frontend
+# React + Vite
 
-A production-ready React frontend for the MyWealthPlanner personal investment portal.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Tech Stack
+Currently, two official plugins are available:
 
-- **React 18** + **React Router v6**
-- **React Hook Form** — performant form management
-- **Zod** + **@hookform/resolvers** — schema-based validation
-- **Lucide React** — clean icon set
-- **Tailwind CSS v3** — utility-first styling
-- **Vite** — fast dev server & build tool
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Pages
+## React Compiler
 
-| Route | Description |
-|-------|-------------|
-| `/` | Home / Landing page with Navbar |
-| `/login` | Login page (email + password, RHF + Zod) |
-| `/register` | Register page (full name, email, password, confirm, terms) |
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Getting Started
+## Expanding the ESLint configuration
 
-```bash
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-```
-
-## Validation Rules (Zod Schemas)
-
-### Login
-- `email` — required, valid email format
-- `password` — required, min 6 characters
-
-### Register
-- `fullName` — required, 2–60 characters
-- `email` — required, valid email
-- `password` — min 8 chars, 1 uppercase, 1 number
-- `confirmPassword` — must match password
-- `agreeTerms` — must be checked
-
-## Project Structure
-
-```
-src/
-├── main.jsx           # Entry point
-├── App.jsx            # Router setup
-├── index.css          # Global styles + Tailwind
-├── lib/
-│   └── schemas.js     # Zod validation schemas
-├── components/
-│   └── Navbar.jsx     # Responsive navbar
-└── pages/
-    ├── Home.jsx       # Landing page
-    ├── Login.jsx      # Login form
-    └── Register.jsx   # Registration form
-```
-
-## Notes
-
-- Educational/prototype use only — not real financial advice
-- Under guidance of Asst. Prof. Hitesh Parmar · MERN Stack Project
-- Payments simulated; no real card data handled
-- Fonts: Playfair Display (headings) + DM Sans (body) via Google Fonts
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

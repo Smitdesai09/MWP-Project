@@ -90,11 +90,11 @@ exports.login = async (req, res) => {
         const token = jwt.sign(
             {
                 email: existUser.email,
-                id: existUser._id,
+                _id: existUser._id,
                 role: existUser.role
             },
             process.env.S_KEY,
-            { expiresIn: '15m' }
+            { expiresIn: '28d' }
         )
 
         res.cookie('token', token, {
