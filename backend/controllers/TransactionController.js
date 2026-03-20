@@ -9,6 +9,13 @@ async function getTransactions(req, res) {
             userId: req.user._id
         };
 
+        if (month && (Number(month) < 1 || Number(month) > 12)) {
+            return res.status(400).json({ success: false, error: "Invalid month" });
+        }
+        if (year && isNaN(Number(year))) {
+            return res.status(400).json({ success: false, error: "Invalid year" });
+        }
+
         //default: current month
         const now = new Date();
         const selectedMonth = month ? Number(month) : now.getMonth() + 1;
@@ -17,9 +24,8 @@ async function getTransactions(req, res) {
         const end = new Date(selectedYear, selectedMonth, 1);
         filter.date = { $gte: start, $lt: end };
 
-
-        if (type) filter.type = type;
-        if (category) filter.category = category;
+        if (type) filter.type = type.toLowerCase();
+        if (category) filter.category = category.trim();
 
         const transactions = await Transaction.find(filter)
             .sort({ date: -1 });
@@ -37,7 +43,7 @@ async function createTransaction(req, res) {
         const userId = req.user._id;
 
         //missing check
-        if (!title || amount === undefined || !type || !category || !date) {
+        if (!title || amount === undefined || !type || !category) {
             return res.status(400).json({ success: false, error: 'Please enter all required fields.' });
         }
 
@@ -48,23 +54,27 @@ async function createTransaction(req, res) {
         }
 
         //type check
-        if (!['income', 'expense'].includes(type)) {
+        const normalizedType = type.toLowerCase();
+        if (!['income', 'expense'].includes(normalizedType)) {
             return res.status(400).json({ success: false, error: 'Invalid transaction type.' });
         }
 
         //date check
-        const parsedDate = new Date(date);
-        if (isNaN(parsedDate)) {
-            return res.status(400).json({ success: false, error: 'Invalid date.' });
+        let parsedDate;
+        if (date) {
+            parsedDate = new Date(date);
+            if (isNaN(parsedDate)) {
+                return res.status(400).json({ success: false, error: 'Invalid date.' });
+            }
         }
 
         const transaction = await Transaction.create({
             userId,
             title: title.trim(),
-            amount,
-            type,
+            amount: parsedAmount,
+            type: normalizedType,
             category: category.trim(),
-            date,
+            date: parsedDate,
             notes: notes?.trim()
         });
 
@@ -93,16 +103,17 @@ async function updateTransaction(req, res) {
         if (title) updateData.title = title.trim();
         if (amount !== undefined) {
             const parsedAmount = Number(amount);
-            if (isNaN(amount) || amount < 0) {
+            if (isNaN(parsedAmount) || parsedAmount < 0) {
                 return res.status(400).json({ success: false, error: 'Invalid amount.' });
             }
             updateData.amount = parsedAmount;
         }
         if (type) {
-            if (!['income', 'expense'].includes(type)) {
+            const normalizedType = type.toLowerCase();
+            if (!['income', 'expense'].includes(normalizedType)) {
                 return res.status(400).json({ success: false, error: 'Invalid transaction type.' });
             }
-            updateData.type = type;
+            updateData.type = normalizedType;
         }
         if (category) updateData.category = category.trim();
         if (date) {
