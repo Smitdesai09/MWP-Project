@@ -4,6 +4,7 @@ const cookiparser = require('cookie-parser')
 const connection = require('./config/connection')
 const dotenv = require('dotenv')
 
+
 dotenv.config()
 connection()
 
@@ -15,12 +16,13 @@ app.use(express.json())
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
-}
-))
+}))
 app.use(cookiparser())
 
 // Auth Router
-app.use('/auth', require('./routes/AuthRouter'))
+app.use('/auth', require('./routes/AuthRoutes'))
+// Transaction Router
+app.use('/api/transactions', require('./routes/TransactionRoutes'))
 
 
 const PORT = process.env.PORT || 5000
