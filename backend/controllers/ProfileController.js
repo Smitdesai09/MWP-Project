@@ -9,7 +9,7 @@ const calculateRisk = (answers)=>{
         riskLevel = 'low'
     }
     else if(riskScore<=8){
-        riskLevel = 'modrate'
+        riskLevel = 'moderate'
     }
     else{
         riskLevel = 'high'
@@ -17,7 +17,16 @@ const calculateRisk = (answers)=>{
     return { riskScore,riskLevel }
 }
 
-exports.createOrSaveProfile = async (req,res)=>{
+const validateAnswer = (answers) =>{
+    return(
+        answers!== undefined &&
+        Array.isArray(answers) && 
+        answers.length === 4 &&
+        answers.every(ans => typeof ans === 'number' && ans >=1 && ans<=4)
+    );
+}
+
+exports.createOrSaveProfile = async (req,res,next)=>{
     try{
 
         const userId = req.user._id;
@@ -28,18 +37,21 @@ exports.createOrSaveProfile = async (req,res)=>{
             return res.status(400).json({success:false,message:'Profile Already Exists..!'})
         }
 
-        if(!age || !dependents || !incomeMonthly){
+        // Validation for data inorder to store valid data in DB
+        if(age === undefined || dependents === undefined || incomeMonthly === undefined){
             return res.status(400).json({success:false,message:'Please Give All The Details'})
         }
-
-        if(!answers || answers.length !== 4){
-            return res.status(400).json({success:false,message:'Exatly 4 answers required..!'})
+        if(typeof age!=='number' || typeof dependents!=='number' || typeof incomeMonthly!=='number'){
+            return res.status(400).json({success:false,message:'age,dependants,incomeMonthly must be number only..!'})
+        }
+        if(!validateAnswer(answers)){
+            return res.status(400).json({success:false,message:'Please Give Valid Answers..!'})
         }
 
         const {riskScore,riskLevel} = calculateRisk(answers)
 
         const newprofile = await profile.create({
-            userId:userId,
+            userId,
             age,
             dependents,
             incomeMonthly,
@@ -51,14 +63,15 @@ exports.createOrSaveProfile = async (req,res)=>{
         return res.status(201).json({success:true,message:'Profile created Successfully..!'})
 
     }catch(err){
-        return res.status(500).json({
-            success:false,
-            message:err.message
-        })
+        // return res.status(500).json({
+        //     success:false,
+        //     message:err.message
+        // })
+        next(err);
     }
 }
 
-exports.getProfile = async (req,res)=>{
+exports.getProfile = async (req,res,next)=>{
     try{
         const userId = req.user._id;
     
@@ -69,15 +82,15 @@ exports.getProfile = async (req,res)=>{
 
         return res.status(200).json({success:true,data:existingprofile})
     }catch(err){
-        return res.status(500).json({
-            success:false,
-            message:err.message
-        })
+        // return res.status(500).json({
+        //     success:false,
+        //     message:err.message
+        // })
+        next(err);
     }
 }
 
-
-exports.editProfile = async (req,res)=>{  
+exports.editProfile = async (req,res,next)=>{  
     try{    
         const userId = req.user._id;
         const { age,dependents,incomeMonthly,answers } = req.body;
@@ -87,21 +100,29 @@ exports.editProfile = async (req,res)=>{
             return res.status(404).json({success:false,message:'Profile Not Found'})
         }
 
+        // Validation for data inorder to store valid data in DB
         if(age !== undefined){
+            if(typeof age!=='number'){
+                return res.status(400).json({success:false,message:'age must be in number only..!'})
+            }
             existprofile.age = age
         }
         if(dependents !== undefined){
+            if(typeof dependents!=='number'){
+                return res.status(400).json({success:false,message:'dependents must be in number only..!'})
+            }
             existprofile.dependents = dependents
         }
         if(incomeMonthly !== undefined){
+            if(typeof incomeMonthly!=='number'){
+                return res.status(400).json({success:false,message:'incomeMonthly must be in number only..!'})
+            }
             existprofile.incomeMonthly = incomeMonthly
         }
-
         if(answers!== undefined){
-            if(answers.length!== 4){
-                return res.status(400).json({success:false,message:'Exatly 4 answers required..!'})
+            if(!validateAnswer(answers)){
+                return res.status(400).json({success:false,message:'Please Give Valid Answers..!'})
             }
-
             const {riskScore,riskLevel} = calculateRisk(answers)
 
             existprofile.riskAnswer = answers
@@ -114,9 +135,10 @@ exports.editProfile = async (req,res)=>{
         return res.status(200).json({success:true,message:'Profile Updated Successfully..!'})
 
     }catch(err){
-        return res.status(500).json({
-            success:false,
-            message:err.message
-        })
+        // return res.status(500).json({
+        //     success:false,
+        //     message:err.message
+        // })
+        next(err);
     }
 }

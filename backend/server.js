@@ -6,6 +6,7 @@ const dotenv = require('dotenv')
 const { Globallimiter } = require('./middlewares/RateLimiter')
 const auth = require('./routes/AuthRouter')
 const profile = require('./routes/ProfileRouter')
+const goal = require('./routes/GoalRouter')
 
 dotenv.config()
 connection()
@@ -23,7 +24,17 @@ app.use(Globallimiter)
 // Auth Router
 app.use('/auth',auth)
 app.use('/profile',profile)
+app.use('/goal',goal)
 
+
+
+app.use((err, req, res, next) => {
+   const statusCode = err.statusCode || 500;
+   res.status(statusCode).json({
+      success: false,
+      message: err.message || 'Internal Server Error'
+   });
+});
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT,'0.0.0.0',()=>console.log(`Server Runnig On ${PORT}`))

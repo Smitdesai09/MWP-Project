@@ -12,30 +12,34 @@ const profileSchema = new mongoose.Schema({
         type:Number,
         required:true,
         min:18,
-        max:80
+        max:80,
+        trim:true
     },
     dependents:{
         type:Number,
         required:true,
         min:0,
-        max:10
+        max:10,
+        trim:true
     },
     incomeMonthly:{
         type:Number,
         required:true,
-        min:0
+        min:0,
+        trim:true
     },
     // Risk Related
     riskAnswer:{
         type:[Number],
-        required:true
+        required:true,
+        trim:true
     },
     riskScore:{
         type:Number,
     },
     riskLevel:{
         type:String,
-        enum:['low','modrate','high'],
+        enum:['low','moderate','high'],
     }
 },{timestamps:true})
 
