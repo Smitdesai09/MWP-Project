@@ -24,8 +24,15 @@ async function getTransactions(req, res) {
         const end = new Date(selectedYear, selectedMonth, 1);
         filter.date = { $gte: start, $lt: end };
 
-        if (type) filter.type = type.toLowerCase();
+        if (type) {
+            const normalizedType = type.toLowerCase();
+            if (!['income', 'expense'].includes(normalizedType)) {
+                return res.status(400).json({ success: false, error: "Invalid type" });
+            }
+            filter.type = normalizedType;
+        }
         if (category) filter.category = category.trim();
+
 
         const transactions = await Transaction.find(filter)
             .sort({ date: -1 });
@@ -49,7 +56,7 @@ async function createTransaction(req, res) {
 
         //amount check
         const parsedAmount = Number(amount);
-        if (isNaN(parsedAmount) || parsedAmount < 0) {
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
             return res.status(400).json({ success: false, error: 'Invalid amount.' });
         }
 
