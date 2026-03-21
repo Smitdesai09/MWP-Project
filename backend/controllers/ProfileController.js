@@ -20,7 +20,7 @@ const calculateRisk = (answers)=>{
 exports.createOrSaveProfile = async (req,res)=>{
     try{
 
-        const userId = req.user.id;
+        const userId = req.user._id;
         const { age,dependents,incomeMonthly,answers } = req.body
         
         const existingProfile = await profile.findOne({userId})
@@ -60,7 +60,7 @@ exports.createOrSaveProfile = async (req,res)=>{
 
 exports.getProfile = async (req,res)=>{
     try{
-        const userId = req.user.id;
+        const userId = req.user._id;
     
         const existingprofile = await profile.findOne({userId})
         if(!existingprofile){
@@ -79,7 +79,7 @@ exports.getProfile = async (req,res)=>{
 
 exports.editProfile = async (req,res)=>{  
     try{    
-        const userId = req.user.id;
+        const userId = req.user._id;
         const { age,dependents,incomeMonthly,answers } = req.body;
 
         const existprofile = await profile.findOne({userId})

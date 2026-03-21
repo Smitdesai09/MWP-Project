@@ -4,9 +4,12 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const sendMail = require('../utils/sendMail')
 
+/* ===========================
+   REGISTER
+=========================== */
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, roll } = req.body
+        const { name, email, password, role } = req.body
 
         if (!name || !email || !password) {
             return res.status(400).json({
@@ -30,7 +33,7 @@ exports.register = async (req, res) => {
             name,
             email,
             password: hashPassword,
-            roll
+            role
         })
 
         return res.status(201).json({
@@ -40,7 +43,7 @@ exports.register = async (req, res) => {
                 id: newuser._id,
                 name: newuser.name,
                 email: newuser.email,
-                roll: newuser.roll
+                role: newuser.role
             }
         })
 
@@ -52,6 +55,9 @@ exports.register = async (req, res) => {
     }
 }
 
+/* ===========================
+   LOGIN
+=========================== */
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -84,18 +90,18 @@ exports.login = async (req, res) => {
         const token = jwt.sign(
             {
                 email: existUser.email,
-                id: existUser._id,
-                roll: existUser.roll
+                _id: existUser._id,
+                role: existUser.role
             },
             process.env.S_KEY,
-            { expiresIn: '1d' }
+            { expiresIn: '28d' }
         )
 
         res.cookie('token', token, {
             httpOnly: true,
             secure: false, // true in production with https
             sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 15 * 60 * 1000
         })
 
         return res.status(200).json({
@@ -106,7 +112,7 @@ exports.login = async (req, res) => {
                 id: existUser._id,
                 name: existUser.name,
                 email: existUser.email,
-                roll: existUser.roll
+                role: existUser.role
             }
         })
 
@@ -118,6 +124,9 @@ exports.login = async (req, res) => {
     }
 }
 
+/* ===========================
+   LOGOUT
+=========================== */
 exports.logout = (req, res) => {
     try {
         res.clearCookie('token')
@@ -133,6 +142,9 @@ exports.logout = (req, res) => {
     }
 }
 
+/* ===========================
+   FORGOT PASSWORD (SECURE)
+=========================== */
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body
@@ -198,6 +210,9 @@ exports.forgotPassword = async (req, res) => {
     }
 }
 
+/* ===========================
+   RESET PASSWORD (SECURE)
+=========================== */
 exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params
