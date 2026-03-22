@@ -9,19 +9,19 @@ const ensureAuthencated = (req, res, next) => {
         }
         const decode = jwt.verify(token, process.env.S_KEY)
         req.user = decode;
-        // req.user => email,_id,role
+        // req.user => email,_id,roll
         next();
     } catch (err) {
         return res.status(401).json({ Success: false, message: err.message })
     }
 }
 
-const AuthorizedRole = (...allowedRoles) => {
+const AuthorizedRoll = (...aloowedrole) => {
     return (req, res, next) => {
         if (!req.user || !req.user.role) {
             return res.status(401).json({ Success: false, message: 'Role Information Missing..!' })
         }
-        if (!allowedRoles.includes(req.user.role)) {
+        if (!aloowedrole.includes(req.user.role)) {
             return res.status(401).json({ Success: false, message: 'Access Denied..!' })
         }
         next();
@@ -30,5 +30,5 @@ const AuthorizedRole = (...allowedRoles) => {
 
 module.exports = {
     ensureAuthencated,
-    AuthorizedRole
+    AuthorizedRoll
 }

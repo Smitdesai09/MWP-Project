@@ -10,7 +10,7 @@ export default function Navbar() {
     { label: 'Features', href: '#features' },
     { label: 'Calculators', href: '#calculators' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'About', href: '#about' },
   ]
 
    const handleLogoClick = (e) => {

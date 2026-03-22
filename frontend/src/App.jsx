@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+
 import Home              from './pages/authPages/Home.jsx'
 import Login             from './pages/authPages/Login.jsx'
 import Register          from './pages/authPages/Register.jsx'
@@ -56,5 +57,3 @@ export default function App() {
 
       </Routes>
     </>
-  )
-}
