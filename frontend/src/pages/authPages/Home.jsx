@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import Navbar from '../components/Navbar.jsx'
+import Navbar from '../../components/Navbar.jsx'
 import {
   TrendingUp,
   ShieldCheck,
@@ -262,7 +262,7 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="about" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="testimonials" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <Badge>
