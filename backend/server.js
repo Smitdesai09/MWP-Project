@@ -20,9 +20,11 @@ app.use(cors({
 app.use(cookiparser())
 
 // Auth Router
-app.use('/auth', require('./routes/AuthRoutes'))
+app.use('/api/auth', require('./routes/AuthRoutes'))
 // Transaction Router
 app.use('/api/transactions', require('./routes/TransactionRoutes'))
+// Budget Router
+app.use('/api/budgets', require('./routes/BudgetRoutes'))
 
 
 const PORT = process.env.PORT || 5000
