@@ -25,6 +25,8 @@ app.use('/api/auth', require('./routes/AuthRoutes'))
 app.use('/api/transactions', require('./routes/TransactionRoutes'))
 // Budget Router
 app.use('/api/budgets', require('./routes/BudgetRoutes'))
+// Holding Routerrs
+app.use('/api/holdings', require('./routes/HoldingRoutes'))
 
 
 const PORT = process.env.PORT || 5000
