@@ -5,7 +5,6 @@ const goalSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'User',
         required:true,
-        unique:true
     },
     name:{
         type:String,
@@ -38,7 +37,7 @@ const goalSchema = new mongoose.Schema({
     },
 
     // Calculation Feild
-    futuretargetCorpus:{
+    futureTargetCorpus:{
         type:Number,
         default:0
     },
