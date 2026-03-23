@@ -33,7 +33,6 @@ app.use('/api/profile',require('./routes/ProfileRouter'))
 app.use('/api/goal',require('./routes/GoalRouter'))
 
 
-
 app.use((err, req, res, next) => {
    const statusCode = err.statusCode || 500;
    res.status(statusCode).json({
