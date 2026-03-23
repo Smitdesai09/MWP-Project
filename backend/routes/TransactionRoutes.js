@@ -4,7 +4,8 @@ const { ensureAuthencated, AuthorizedRole } = require('../middlewares/AuthValida
 const { getTransactions,
     createTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    getTransactionSummary
 } = require('../controllers/TransactionController');
 
 
@@ -14,5 +15,6 @@ router.get('/', getTransactions);
 router.post('/', createTransaction);
 router.put('/:id', updateTransaction);
 router.delete('/:id', deleteTransaction);
+router.get('/summary', getTransactionSummary);
 
 module.exports = router;

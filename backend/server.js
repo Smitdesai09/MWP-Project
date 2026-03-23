@@ -27,20 +27,15 @@ app.use('/api/auth', require('./routes/AuthRoutes'))
 app.use('/api/transactions', require('./routes/TransactionRoutes'))
 // Budget Router
 app.use('/api/budgets', require('./routes/BudgetRoutes'))
-// Profile Router
-app.use('/api/profile',require('./routes/ProfileRouter'))
+// Holding Routerrs
+app.use('/api/holdings', require('./routes/HoldingRoutes'))
+// Dashboard Router
+app.use('/api/dashboard', require('./routes/DashboardRoutes'))
 // Goal Router
-app.use('/api/goal',require('./routes/GoalRouter'))
+app.use('/api/goals', require('./routes/GoalRoutes'))
+// Profile Router
+app.use('/api/profile', require('./routes/ProfileRoutes'))
 
-
-
-app.use((err, req, res, next) => {
-   const statusCode = err.statusCode || 500;
-   res.status(statusCode).json({
-      success: false,
-      message: err.message || 'Internal Server Error'
-   });
-});
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, '0.0.0.0', () => console.log(`Server Runnig On ${PORT}`))
