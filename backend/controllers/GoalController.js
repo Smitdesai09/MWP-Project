@@ -41,11 +41,36 @@ exports.getGoals = async (req,res,next) =>{
     try{
         const userId = req.user._id;
 
-        const goals = await goalModel.find({userId}).sort({createdAt:-1});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1)*limit;
+
+        const { type,search } = req.query;
+
+        let filter={ userId };
+
+        if(type){
+            filter.planType = type;
+        }
+
+        if(search){
+            filter.name = {$regex:search,$options:'i'}
+        }
+
+        const goals = await goalModel.find(filter).skip(skip).limit(limit).sort({createdAt:-1});
         if(!goals){
             return res.status(404).json({success:false,message:'goal not found'})
         }
-        return res.status(200).json({success:true,count:goals.length,data:goals});
+        
+        const total = await goalModel.countDocuments(filter);
+
+        return res.status(200).json({
+            success:true,
+            page,
+            totalPage : Math.ceil(total/limit),
+            total,
+            data:goals
+        });
     }catch(err){
         next(err)
     }

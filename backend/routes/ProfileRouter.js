@@ -7,10 +7,10 @@ const {
     editProfile
 } = require('../controllers/ProfileController')
 
-const { ensureAuthencated } = require('../middlewares/AuthValidation')
+const { ensureAuthencated,AuthorizedRole } = require('../middlewares/AuthValidation')
 
-router.post('/',ensureAuthencated,createOrSaveProfile)
-router.get('/',ensureAuthencated,getProfile)
-router.patch('/',ensureAuthencated,editProfile)
+router.post('/',ensureAuthencated,AuthorizedRole('client'),createOrSaveProfile)
+router.get('/',ensureAuthencated,AuthorizedRole('client'),getProfile)
+router.patch('/',ensureAuthencated,AuthorizedRole('client'),editProfile)
 
 module.exports = router

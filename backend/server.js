@@ -22,9 +22,9 @@ app.use(cookiparser())
 app.use(Globallimiter)
 
 // Auth Router
-app.use('/auth',auth)
-app.use('/profile',profile)
-app.use('/goal',goal)
+app.use('/api/auth',auth)
+app.use('/api/profile',profile)
+app.use('/api/goal',goal)
 
 
 

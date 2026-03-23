@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { ensureAuthencated } = require('../middlewares/AuthValidation')
+const { ensureAuthencated,AuthorizedRole } = require('../middlewares/AuthValidation')
 
 const { 
     createGoal,
@@ -10,7 +10,7 @@ const {
 } = require('../controllers/GoalController')
 
 
-router.use(ensureAuthencated)
+router.use(ensureAuthencated,AuthorizedRole('client'))
 
 router.post('/',createGoal)
 router.patch('/:id',editGoal)
