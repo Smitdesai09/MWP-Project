@@ -27,10 +27,14 @@ app.use('/api/auth', require('./routes/AuthRoutes'))
 app.use('/api/transactions', require('./routes/TransactionRoutes'))
 // Budget Router
 app.use('/api/budgets', require('./routes/BudgetRoutes'))
-// Profile Router
-app.use('/api/profile',require('./routes/ProfileRouter'))
+// Holding Routerrs
+app.use('/api/holdings', require('./routes/HoldingRoutes'))
+// Dashboard Router
+app.use('/api/dashboard', require('./routes/DashboardRoutes'))
 // Goal Router
-app.use('/api/goal',require('./routes/GoalRouter'))
+app.use('/api/goals', require('./routes/GoalRoutes'))
+// Profile Router
+app.use('/api/profile', require('./routes/ProfileRoutes'))
 
 
 app.use((err, req, res, next) => {
