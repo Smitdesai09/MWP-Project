@@ -27,7 +27,8 @@ app.use('/api/transactions', require('./routes/TransactionRoutes'))
 app.use('/api/budgets', require('./routes/BudgetRoutes'))
 // Holding Routerrs
 app.use('/api/holdings', require('./routes/HoldingRoutes'))
-
+// Dashboard Router
+app.use('/api/dashboard', require('./routes/DashboardRoutes'))
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, '0.0.0.0', () => console.log(`Server Runnig On ${PORT}`))

@@ -3,43 +3,76 @@ const mongoose = require("mongoose");
 
 async function getTransactions(req, res) {
     try {
-        const { month, year, type, category } = req.query;
+        const { month, year, type, category, search, page = 1, limit = 10 } = req.query;
 
-        const filter = {
-            userId: req.user._id
-        };
-
+        // ---------- VALIDATION ----------
         if (month && (Number(month) < 1 || Number(month) > 12)) {
             return res.status(400).json({ success: false, error: "Invalid month" });
         }
         if (year && isNaN(Number(year))) {
             return res.status(400).json({ success: false, error: "Invalid year" });
         }
+        if (type && !['income', 'expense'].includes(type.toLowerCase())) {
+            return res.status(400).json({ success: false, error: "Invalid type" });
+        }
 
-        //default: current month
+
+        // ---------- BASE FILTER ----------
         const now = new Date();
         const selectedMonth = month ? Number(month) : now.getMonth() + 1;
         const selectedYear = year ? Number(year) : now.getFullYear();
         const start = new Date(selectedYear, selectedMonth - 1, 1);
         const end = new Date(selectedYear, selectedMonth, 1);
-        filter.date = { $gte: start, $lt: end };
 
-        if (type) {
-            const normalizedType = type.toLowerCase();
-            if (!['income', 'expense'].includes(normalizedType)) {
-                return res.status(400).json({ success: false, error: "Invalid type" });
-            }
-            filter.type = normalizedType;
-        }
+        const filter = {
+            userId: req.user._id,
+            date: { $gte: start, $lt: end }
+        };
+
+
+        // ---------- OPTIONAL FILTERS ----------
+        if (type) filter.type = type.toLowerCase();
         if (category) filter.category = category.trim();
 
+        if (search) {
+            const searchRegex = new RegExp(search.trim(), "i");
+            filter.$or = [
+                { title: searchRegex },
+                { notes: searchRegex },
+                { category: searchRegex }
+            ];
+        }
 
-        const transactions = await Transaction.find(filter)
-            .sort({ date: -1 });
+        const pageNumber = Math.max(1, Number(page));
+        const limitNumber = Math.max(1, Number(limit));
+        const skip = (pageNumber - 1) * limitNumber;
 
-        res.status(200).json({ success: true, transactions });
-    }
-    catch (error) {
+        const countQuery = { ...filter };
+
+
+
+        const [transactions, total] = await Promise.all([
+            Transaction.find(filter)
+                .sort({ date: -1 })
+                .skip(skip)
+                .limit(limitNumber),
+            Transaction.countDocuments(countQuery)
+        ]);
+
+
+
+        res.status(200).json({
+            success: true,
+            transactions,
+            pagination: {
+                total,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages: Math.ceil(total / limitNumber)
+            }
+        });
+
+    } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 }
@@ -81,7 +114,7 @@ async function createTransaction(req, res) {
             amount: parsedAmount,
             type: normalizedType,
             category: category.trim(),
-            date: parsedDate,
+            date: parsedDate || new Date(),
             notes: notes?.trim()
         });
 
@@ -110,7 +143,7 @@ async function updateTransaction(req, res) {
         if (title) updateData.title = title.trim();
         if (amount !== undefined) {
             const parsedAmount = Number(amount);
-            if (isNaN(parsedAmount) || parsedAmount < 0) {
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
                 return res.status(400).json({ success: false, error: 'Invalid amount.' });
             }
             updateData.amount = parsedAmount;
@@ -174,9 +207,40 @@ async function deleteTransaction(req, res) {
     }
 }
 
+async function getTransactionSummary(req, res) {
+    try {
+        const userId = req.user._id;
+
+        const transactions = await Transaction.find({ userId });
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        for (const t of transactions) {
+            if (t.type === "income") totalIncome += t.amount;
+            else if (t.type === "expense") totalExpense += t.amount;
+        }
+
+        const balance = totalIncome - totalExpense;
+
+        res.json({
+            success: true,
+            summary: {
+                totalIncome,
+                totalExpense,
+                balance
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+}
+
 module.exports = {
     getTransactions,
     createTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    getTransactionSummary
 };

@@ -5,7 +5,7 @@ const {
     getHoldings,
     updateHolding,
     deleteHolding,
-    getRecommendations
+    getHoldingsSummary
 } = require('../controllers/HoldingController');
 
 const {
@@ -15,10 +15,11 @@ const {
 
 router.use(ensureAuthencated, AuthorizedRole("client"));
 
-router.get("/recommendations", getRecommendations);
+
 router.post("/", addHolding);
 router.get("/", getHoldings);
 router.patch("/:id", updateHolding);
 router.delete("/:id", deleteHolding);
+router.get("/summary", getHoldingsSummary);
 
 module.exports = router;

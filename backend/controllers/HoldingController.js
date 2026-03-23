@@ -2,23 +2,58 @@ const Holding = require('../models/Holding');
 // const Profile = require("../models/Profile");
 const mongoose = require('mongoose');
 
-function calculateGain(h) {
-    const gain = h.currentValue - h.purchaseValue;
-    const percentage = h.purchaseValue > 0 ? (gain / h.purchaseValue) * 100 : 0;
-    return { gain, percentage: Number(percentage.toFixed(2)) };
-};
+async function getHoldings(req, res) {
+    try {
+        const { type, search, page = 1, limit = 10 } = req.query;
 
-function getCategory(type) {
-    if (["stock", "mf", "crypto"].includes(type)) {
-        return "equity";
+        const normalizedType = type?.toLowerCase();
+        if (type && !["stock", "mf", "gold", "fd", "rd", "crypto", "other"].includes(normalizedType)) {
+            return res.status(400).json({ success: false, error: "Invalid type" });
+        }
+
+        // ---------- BASE FILTER ----------
+        const filter = {
+            userId: req.user._id
+        };
+
+        // ---------- FILTER ----------
+        if (type) filter.type = normalizedType;
+        if (search) {
+            filter.name = { $regex: search.trim(), $options: "i" };
+        }
+
+        // ---------- PAGINATION ----------
+        const pageNumber = Math.max(1, Number(page));
+        const limitNumber = Math.max(1, Number(limit));
+        const skip = (pageNumber - 1) * limitNumber;
+        const countQuery = { ...filter };
+
+
+
+        // ---------- DB CALLS ----------
+        const [holdings, total] = await Promise.all([
+            Holding.find(filter)
+                .sort({ purchaseDate: -1 })
+                .skip(skip)
+                .limit(limitNumber),
+            Holding.countDocuments(countQuery)
+        ]);
+
+        // ---------- RESPONSE ----------
+        res.json({
+            success: true,
+            holdings,
+            pagination: {
+                total,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages: Math.ceil(total / limitNumber)
+            }
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
-    if (["fd", "rd"].includes(type)) {
-        return "debt";
-    }
-    if (type === "gold") {
-        return "gold";
-    }
-    return "other";
 }
 
 async function addHolding(req, res) {
@@ -60,63 +95,6 @@ async function addHolding(req, res) {
         });
         res.status(201).json({ success: true, data: holding });
 
-    }
-    catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-}
-
-async function getHoldings(req, res) {
-    try {
-        const userId = req.user._id;
-        const holdings = await Holding.find({ userId: userId }).sort({ purchaseDate: -1 });
-
-        let totalValue = 0;
-        let totalInvestment = 0;
-        let allocation = { equity: 0, debt: 0, gold: 0 };
-
-        const result = holdings.map(h => {
-            const { gain, percentage } = calculateGain(h);
-            totalValue += h.currentValue;
-            totalInvestment += h.purchaseValue;
-
-            const category = getCategory(h.type);
-            if (allocation[category] !== undefined) {
-                allocation[category] += h.currentValue;
-            }
-
-            return {
-                _id: h._id,
-                type: h.type,
-                name: h.name,
-                purchaseValue: h.purchaseValue,
-                currentValue: h.currentValue,
-                purchaseDate: h.purchaseDate,
-                gain,
-                percentage
-            };
-        });
-
-        const total = totalValue || 1; // prevent division by zero
-
-        Object.keys(allocation).forEach(key => {
-            allocation[key] = Number(((allocation[key] / total) * 100).toFixed(2));
-        });
-
-        const totalGain = totalValue - totalInvestment;
-        const totalPercentage = totalInvestment > 0 ? Number(((totalGain / totalInvestment) * 100).toFixed(2)) : Number("0.00");
-
-        res.json({
-            success: true,
-            holdings: result,
-            summary: {
-                totalValue,
-                totalInvestment,
-                totalGain,
-                totalPercentage
-            },
-            allocation
-        });
     }
     catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -182,77 +160,38 @@ async function deleteHolding(req, res) {
     }
 }
 
-async function getRecommendations(req, res) {
+async function getHoldingsSummary(req, res) {
     try {
         const userId = req.user._id;
 
-        const profile = await Profile.findOne({ userId: userId });
-        if (!profile) {
-            return res.status(404).json({ success: false, error: 'User profile not found, Complete your Profile First.' });
-        }
-        if (!riskClass) {
-            return res.status(400).json({ success: false, error: 'Risk Class not found, complete your profile first.' });
-        }
-        const targetAllocation = {
-            conservative: { equity: 20, debt: 70, gold: 10 },
-            balanced: { equity: 50, debt: 40, gold: 10 },
-            aggressive: { equity: 60, debt: 30, gold: 10 }
-        };
-        const target = targetAllocation[riskClass];
+        const holdings = await Holding.find({ userId });
 
-
-        const holdings = await Holding.find({ userId: userId });
-
-
-        let current = { equity: 0, debt: 0, gold: 0 };
         let totalValue = 0;
-        holdings.forEach(h => {
-            const category = getCategory(h.type);
+        let totalInvestment = 0;
 
-            if (current[category] !== undefined) {
-                current[category] += h.currentValue;
-                totalValue += h.currentValue;
-            }
-        });
-        totalValue = totalValue || 1; // prevent division by zero
-        Object.keys(current).forEach(key => {
-            current[key] = Number(((current[key] / totalValue) * 100).toFixed(2));
-        });
+        for (const h of holdings) {
+            totalValue += h.currentValue;
+            totalInvestment += h.purchaseValue;
+        }
 
+        const totalGain = totalValue - totalInvestment;
 
+        const totalPercentage = totalInvestment > 0
+            ? Number(((totalGain / totalInvestment) * 100).toFixed(2))
+            : 0;
 
-        const diff = {
-            equity: Math.abs(target.equity - current.equity),
-            debt: Math.abs(target.debt - current.debt),
-            gold: Math.abs(target.gold - current.gold)
-        };
-        const maxDiff = Math.max(diff.equity, diff.debt, diff.gold);
-
-        // 6. Suggestions (simple)
-        let recommendations = [];
-
-        Object.keys(diff).forEach(key => {
-            if (diff[key] > 5) {
-                if (current[key] < target[key]) {
-                    recommendations.push(`Increase ${key} to ${target[key]}%`);
-                } else {
-                    recommendations.push(`Decrease ${key} to ${target[key]}%`);
-                }
-            }
-        });
-
-        // 7. Response (minimal)
         res.json({
             success: true,
-            currentAllocation: current,
-            targetAllocation,
-            recommendations: recommendations.length > 0
-                ? recommendations
-                : ["Portfolio is well aligned with your risk profile"]
+            summary: {
+                totalValue,
+                totalInvestment,
+                totalGain,
+                totalPercentage
+            }
         });
-    }
-    catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 }
 
@@ -261,5 +200,5 @@ module.exports = {
     getHoldings,
     updateHolding,
     deleteHolding,
-    getRecommendations
+    getHoldingsSummary
 };
