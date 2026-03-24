@@ -80,3 +80,26 @@ export const resetSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   })
+
+
+export const profileSchema = z.object({
+  // Step 0: Basic Info
+  age: z.coerce
+    .number()
+    .min(18, "Minimum age is 18")
+    .max(100, "Please enter a valid age"),
+
+  dependents: z.coerce
+    .number()
+    .min(0, "Cannot be negative")
+    .max(20, "Please enter a valid number of dependents"),
+
+  incomeMonthly: z.coerce
+    .number()
+    .min(1000, "Income must be at least ₹1,000")
+    .max(100000000, "Please enter a valid income"),
+
+  // Risk Score & Answers (Handled via state in CreateProfile)
+  riskScore: z.number().optional(),
+  answers: z.array(z.number()).length(4).optional(),
+});
