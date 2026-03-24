@@ -3,7 +3,7 @@ const cors = require('cors')
 const cookiparser = require('cookie-parser')
 const connection = require('./config/connection')
 const dotenv = require('dotenv')
-const { Globallimiter } = require('./middlewares/RateLimiter')
+// const { Globallimiter } = require('./middlewares/RateLimiter')
 
 dotenv.config()
 connection()
@@ -19,7 +19,7 @@ app.use(cors({
     credentials: true
 }))
 app.use(cookiparser())
-app.use(Globallimiter)
+// app.use(Globallimiter)
 
 // Auth Router
 app.use('/api/auth', require('./routes/AuthRoutes'))
