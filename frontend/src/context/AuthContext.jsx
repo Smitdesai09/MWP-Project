@@ -4,19 +4,25 @@ import API from '../services/api.js'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(null)
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Runs once on app load
-  // Calls /auth/me to verify cookie with backend
   useEffect(() => {
     const verifyUser = async () => {
       try {
         const res = await API.get('/auth/me')
-        setUser(res.data.user)
-        // res.data.user = { id, name, email, role }
-      } catch {
-        // Cookie missing, expired, or invalid
+        
+        // 🔥 CRITICAL FIX: Handle Backend Casing (Success vs success)
+        // Your backend returns "Success", so we must check that first.
+        const isSuccess = res.data?.Success || res.data?.success;
+
+        if (isSuccess && res.data.user) {
+          setUser(res.data.user)
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        // If 401 or network error, clear user
         setUser(null)
       } finally {
         setLoading(false)
@@ -25,13 +31,10 @@ export function AuthProvider({ children }) {
     verifyUser()
   }, [])
 
-  // Call after successful login
-  // userData comes from login API response
   const login = (userData) => {
     setUser(userData)
   }
 
-  // Call on logout button click
   const logout = async () => {
     try {
       await API.post('/auth/logout')
@@ -44,7 +47,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       loading,
-      isAuthenticated: !!user,
+      isAuthenticated: !!user, // True if user is NOT null
       login,
       logout
     }}>

@@ -113,7 +113,7 @@ async function createTransaction(req, res) {
             title: title.trim(),
             amount: parsedAmount,
             type: normalizedType,
-            category: category.trim(),
+            category: category.trim().toLowerCase(),
             date: parsedDate || new Date(),
             notes: notes?.trim()
         });
@@ -155,7 +155,7 @@ async function updateTransaction(req, res) {
             }
             updateData.type = normalizedType;
         }
-        if (category) updateData.category = category.trim();
+        if (category) updateData.category = category.trim().toLowerCase();
         if (date) {
             const parsedDate = new Date(date);
             if (isNaN(parsedDate.getTime())) {
@@ -207,11 +207,54 @@ async function deleteTransaction(req, res) {
     }
 }
 
+// async function getTransactionSummary(req, res) {
+//     try {
+//         const userId = req.user._id;
+
+//         const transactions = await Transaction.find({ userId });
+
+//         let totalIncome = 0;
+//         let totalExpense = 0;
+
+//         for (const t of transactions) {
+//             if (t.type === "income") totalIncome += t.amount;
+//             else if (t.type === "expense") totalExpense += t.amount;
+//         }
+
+//         const balance = totalIncome - totalExpense;
+
+//         res.json({
+//             success: true,
+//             summary: {
+//                 totalIncome,
+//                 totalExpense,
+//                 balance
+//             }
+//         });
+
+//     } catch (error) {
+//         res.status(500).json({ success: false, error: error.message });
+//     }
+// }
+
 async function getTransactionSummary(req, res) {
     try {
         const userId = req.user._id;
 
-        const transactions = await Transaction.find({ userId });
+        // Get current month and year
+        const now = new Date();
+        const month = now.getMonth(); // 0-indexed
+        const year = now.getFullYear();
+
+        // Start and end of the month
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 1);
+
+        // Fetch only transactions for this month
+        const transactions = await Transaction.find({
+            userId,
+            date: { $gte: start, $lt: end }
+        });
 
         let totalIncome = 0;
         let totalExpense = 0;

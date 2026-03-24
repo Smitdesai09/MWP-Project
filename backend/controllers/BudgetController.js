@@ -53,7 +53,7 @@ async function addBudget(req, res) {
             return res.status(400).json({ success: false, error: "Category and monthlyLimit are required." });
         }
 
-        const cleanCategory = category.trim();
+        const cleanCategory = category.trim().toLowerCase();
 
         const parsedLimit = Number(monthlyLimit);
         if (isNaN(parsedLimit) || parsedLimit <= 0) {

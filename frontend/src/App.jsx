@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Home              from './pages/authPages/Home.jsx'
 import Login             from './pages/authPages/Login.jsx'
 import Register          from './pages/authPages/Register.jsx'
@@ -9,53 +9,77 @@ import NotFound          from './pages/authPages/NotFound.jsx'
 import AdvisorDashboard  from './pages/advisorPages/AdvisorDashboard.jsx'
 import ClientDashboard   from './pages/clientPages/ClientDashboard.jsx'
 import ProtectedRoute    from './pages/authPages/ProtectedRoute.jsx'
+import CreateProfile     from './pages/clientPages/CreateProfile.jsx'
+import { useProfile }    from './context/ProfileContext.jsx'
+import { useAuth }       from './context/AuthContext.jsx'
+
+// Simple Global Loader
+const GlobalLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#fafaf8]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-500">Initializing...</p>
+    </div>
+  </div>
+)
+
 export default function App() {
+  const { loading: authLoading }      = useAuth()
+  const { loading: profileLoading }  = useProfile()
+
+  // ⚠️ CRITICAL: Wait for BOTH Auth and Profile to finish
+  if (authLoading || profileLoading) return <GlobalLoader />
+
   return (
     <>
       <AppToaster />
       <Routes>
-
-        {/* Anyone can visit */}
-        <Route path="/" element={<Home />} />
-        <Route path="*" element={<NotFound />} />
-
-        {/* reset-password — token in URL is the security */}
+        
+        {/* --- Public Routes --- */}
+        <Route path="/"                      element={<Home />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-        {/* isPublic — logged out only */}
+        {/* Auth Routes (Logged-out only) */}
         <Route path="/login" element={
-          <ProtectedRoute isPublic>
-            <Login />
-          </ProtectedRoute>
+          <ProtectedRoute isPublic><Login /></ProtectedRoute>
         } />
-
         <Route path="/register" element={
-          <ProtectedRoute isPublic>
-            <Register />
-          </ProtectedRoute>
+          <ProtectedRoute isPublic><Register /></ProtectedRoute>
         } />
-
         <Route path="/forgot-password" element={
-          <ProtectedRoute isPublic>
-            <ForgotPassword />
+          <ProtectedRoute isPublic><ForgotPassword /></ProtectedRoute>
+        } />
+
+        {/* --- Protected Routes --- */}
+
+        {/* 1. Create Profile (Client Only) */}
+        <Route path="/create-profile" element={
+          <ProtectedRoute allowedRoles={['client']}>
+            <CreateProfile />
           </ProtectedRoute>
         } />
 
-        {/* Protected — logged in + correct role only */}
-        <Route path="/client/dashboard" element={
+        {/* 2. Client Dashboard 
+            FIX: Changed path to "/client/*" to handle nested routes properly.
+            This prevents the /dashboard/dashboard double URL issue.
+        */}
+        <Route path="/client/*" element={
           <ProtectedRoute allowedRoles={['client']}>
             <ClientDashboard />
           </ProtectedRoute>
         } />
 
-        <Route path="/advisor/dashboard" element={
+        {/* 3. Advisor Dashboard */}
+        <Route path="/advisor/*" element={
           <ProtectedRoute allowedRoles={['advisor']}>
             <AdvisorDashboard />
           </ProtectedRoute>
         } />
 
+        {/* 404 Fallback */}
+        <Route path="*" element={<NotFound />} />
+
       </Routes>
     </>
   )
-} 
-
+}
