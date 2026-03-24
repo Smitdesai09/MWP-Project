@@ -4,9 +4,6 @@ const Goal = require('../models/Goal');
 const Budget = require('../models/Budget');
 const Profile = require('../models/Profile');
 
-// make sure this exists in your utils
-// function getCategory(type) { ... }
-
 async function getDashboard(req, res) {
     try {
         const userId = req.user._id;
@@ -27,28 +24,35 @@ async function getDashboard(req, res) {
             Profile.findOne({ userId })
         ]);
 
-        // ---------- TRANSACTIONS SUMMARY ----------
+        // ---------- TRANSACTIONS ----------
         let totalIncome = 0;
         let totalExpense = 0;
 
         for (const t of transactions) {
             if (t.type === "income") totalIncome += t.amount;
-            else totalExpense += t.amount;
+            else if (t.type === "expense") totalExpense += t.amount;
         }
 
         const balance = totalIncome - totalExpense;
 
-        // ---------- HOLDINGS SUMMARY ----------
+        // ---------- HOLDINGS ----------
         let totalValue = 0;
         let totalInvestment = 0;
+
         let allocation = { equity: 0, debt: 0, gold: 0 };
 
         for (const h of holdings) {
             totalValue += h.currentValue;
             totalInvestment += h.purchaseValue;
 
-            const category = getCategory(h.type);
-            if (allocation[category] !== undefined) {
+            // INLINE CATEGORY LOGIC (NO getCategory function)
+            let category = null;
+
+            if (["stock", "mf", "crypto"].includes(h.type)) category = "equity";
+            else if (["fd", "rd"].includes(h.type)) category = "debt";
+            else if (h.type === "gold") category = "gold";
+
+            if (category && allocation[category] !== undefined) {
                 allocation[category] += h.currentValue;
             }
         }
@@ -60,6 +64,7 @@ async function getDashboard(req, res) {
             : 0;
 
         const total = totalValue || 1;
+
         Object.keys(allocation).forEach(key => {
             allocation[key] = Number(((allocation[key] / total) * 100).toFixed(2));
         });
@@ -70,28 +75,30 @@ async function getDashboard(req, res) {
 
         if (profile?.riskClass) {
             const targets = {
-                conservative: { equity: 20, debt: 70, gold: 10 },
-                balanced: { equity: 50, debt: 40, gold: 10 },
-                aggressive: { equity: 60, debt: 30, gold: 10 }
+                low: { equity: 20, debt: 70, gold: 10 },
+                moderate: { equity: 50, debt: 40, gold: 10 },
+                high: { equity: 60, debt: 30, gold: 10 }
             };
 
             targetAllocation = targets[profile.riskClass];
 
-            const diff = {
-                equity: targetAllocation.equity - allocation.equity,
-                debt: targetAllocation.debt - allocation.debt,
-                gold: targetAllocation.gold - allocation.gold
-            };
+            if (targetAllocation) {
+                const diff = {
+                    equity: targetAllocation.equity - allocation.equity,
+                    debt: targetAllocation.debt - allocation.debt,
+                    gold: targetAllocation.gold - allocation.gold
+                };
 
-            Object.keys(diff).forEach(key => {
-                if (Math.abs(diff[key]) > 5) {
-                    if (diff[key] > 0) {
-                        recommendations.push(`Increase ${key} to ${targetAllocation[key]}%`);
-                    } else {
-                        recommendations.push(`Decrease ${key} to ${targetAllocation[key]}%`);
+                Object.keys(diff).forEach(key => {
+                    if (Math.abs(diff[key]) > 5) {
+                        if (diff[key] > 0) {
+                            recommendations.push(`Increase ${key} to ${targetAllocation[key]}%`);
+                        } else {
+                            recommendations.push(`Decrease ${key} to ${targetAllocation[key]}%`);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         if (recommendations.length === 0) {

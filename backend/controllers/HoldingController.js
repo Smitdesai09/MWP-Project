@@ -12,12 +12,11 @@ async function getHoldings(req, res) {
         }
 
         // ---------- BASE FILTER ----------
-        const filter = {
-            userId: req.user._id
-        };
+        const filter = { userId: req.user._id };
 
         // ---------- FILTER ----------
         if (type) filter.type = normalizedType;
+
         if (search) {
             filter.name = { $regex: search.trim(), $options: "i" };
         }
@@ -26,9 +25,6 @@ async function getHoldings(req, res) {
         const pageNumber = Math.max(1, Number(page));
         const limitNumber = Math.max(1, Number(limit));
         const skip = (pageNumber - 1) * limitNumber;
-        const countQuery = { ...filter };
-
-
 
         // ---------- DB CALLS ----------
         const [holdings, total] = await Promise.all([
@@ -36,13 +32,33 @@ async function getHoldings(req, res) {
                 .sort({ purchaseDate: -1 })
                 .skip(skip)
                 .limit(limitNumber),
-            Holding.countDocuments(countQuery)
+            Holding.countDocuments(filter)
         ]);
+
+        // ---------- MAP WITH GAIN ----------
+        const result = holdings.map(h => {
+            const gain = h.currentValue - h.purchaseValue;
+
+            const percentage = h.purchaseValue > 0
+                ? Number(((gain / h.purchaseValue) * 100).toFixed(2))
+                : 0;
+
+            return {
+                _id: h._id,
+                type: h.type,
+                name: h.name,
+                purchaseValue: h.purchaseValue,
+                currentValue: h.currentValue,
+                purchaseDate: h.purchaseDate,
+                gain,
+                percentage
+            };
+        });
 
         // ---------- RESPONSE ----------
         res.json({
             success: true,
-            holdings,
+            holdings: result,
             pagination: {
                 total,
                 page: pageNumber,
