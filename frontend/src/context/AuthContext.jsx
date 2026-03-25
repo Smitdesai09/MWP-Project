@@ -10,10 +10,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const verifyUser = async () => {
       try {
-        const res = await API.get('/auth/me')
+        // ⚠️ FIX: Added closing brace } for the config object and closing parenthesis ) for the function
+        const res = await API.get('/auth/me', {
+          validateStatus: function (status) {
+            return status < 500 // Treat 401 and 404 as valid responses, not errors
+          }
+        }) 
         
-        // 🔥 CRITICAL FIX: Handle Backend Casing (Success vs success)
-        // Your backend returns "Success", so we must check that first.
+        // Handle Backend Casing (Success vs success)
         const isSuccess = res.data?.Success || res.data?.success;
 
         if (isSuccess && res.data.user) {
@@ -22,7 +26,7 @@ export function AuthProvider({ children }) {
           setUser(null)
         }
       } catch (error) {
-        // If 401 or network error, clear user
+        // This now only catches real network errors (disconnect, etc.)
         setUser(null)
       } finally {
         setLoading(false)
@@ -47,7 +51,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       loading,
-      isAuthenticated: !!user, // True if user is NOT null
+      isAuthenticated: !!user,
       login,
       logout
     }}>

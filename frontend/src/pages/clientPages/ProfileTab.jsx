@@ -26,8 +26,8 @@ const RISK_QUESTIONS = [
     icon: "⏳",
     options: [
       { value: 1, label: "Less than 1 year", desc: "Short-term liquidity needed" },
-      { value: 2, label: "1–3 years",         desc: "Medium-term planning" },
-      { value: 3, label: "3–7 years",         desc: "Long-term growth focus" },
+      { value: 2, label: "1-3 years",         desc: "Medium-term planning" },
+      { value: 3, label: "3-7 years",         desc: "Long-term growth focus" },
       { value: 4, label: "7+ years",          desc: "Maximum compounding horizon" },
     ]
   },
@@ -95,7 +95,7 @@ const StatItem = ({ label, value, icon: Icon }) => (
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditProfileModal({ profileData, onClose, onSaved }) {
-  const [step, setStep]           = useState(0)
+  const [step, setStep] = useState(0)
   const [riskAnswers, setRiskAnswers] = useState(
     profileData?.riskAnswer?.length === 4 ? [...profileData.riskAnswer] : [0, 0, 0, 0]
   )
@@ -133,16 +133,22 @@ function EditProfileModal({ profileData, onClose, onSaved }) {
       age:           Number(formValues.age),
       dependents:    Number(formValues.dependents),
       incomeMonthly: Number(formValues.incomeMonthly),
-      riskScore:     previewScore,
+      riskScore:     previewScore, // Backend recalculates this, but we send it
       answers:       riskAnswers,
     }
     try {
+      // Backend route: PATCH /api/profile
       const res = await API.patch('/profile', payload)
-      onSaved(res.data)
-      toast.success('Profile updated!')
-      onClose()
+      
+      if (res.data.success) {
+        await onSaved(); // Triggers checkProfile() in Context to refresh data
+        toast.success('Profile updated!')
+        onClose()
+      } else {
+        toast.error(res.data.message || "Update failed")
+      }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to update profile')
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update profile')
     } finally {
       setSubmitting(false)
     }

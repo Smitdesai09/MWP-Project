@@ -4,31 +4,30 @@ import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
 
-// Helper to extract profile data
+// Helper to extract profile data from GET response
 function extractProfile(data) {
-  if (!data) return null
-  if (data.data)    return data.data
-  if (data.profile) return data.profile
-  if (data.age !== undefined || data.riskScore !== undefined) return data
-  return null
+  if (!data) return null;
+  // Backend GET returns { success: true, data: profileObject }
+  if (data.data) return data.data;
+  if (data.profile) return data.profile;
+  if (data.age !== undefined || data.riskScore !== undefined) return data;
+  return null;
 }
 
 export const ProfileProvider = ({ children }) => {
-  const { user, loading: authLoading } = useAuth(); // Get auth loading state
+  const { user, loading: authLoading } = useAuth();
   const [profileExists, setProfileExists] = useState(false);
-  const [loading, setLoading]             = useState(true); // Start true
-  const [profileData, setProfileData]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
 
   const checkProfile = async () => {
     if (!user) {
-      // If user is definitively null (after auth loaded), we are done.
       setProfileExists(false);
       setProfileData(null);
       setLoading(false);
       return;
     }
     
-    // User exists, check for profile
     try {
       const res = await API.get('/profile');
       const profile = extractProfile(res.data);
@@ -37,6 +36,7 @@ export const ProfileProvider = ({ children }) => {
         setProfileExists(true);
       } else {
         setProfileExists(false);
+        setProfileData(null);
       }
     } catch (err) {
       setProfileExists(false);
@@ -46,8 +46,13 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  // FIX: saveProfile function that triggers a re-fetch
+  // Since backend doesn't return the profile on POST/PATCH, we must GET it again
+  const saveProfile = async () => {
+    await checkProfile();
+  };
+
   useEffect(() => {
-    // ⚠️ CRITICAL FIX: Only run check when Auth is FINISHED loading
     if (!authLoading) {
       checkProfile();
     }
@@ -60,6 +65,7 @@ export const ProfileProvider = ({ children }) => {
       profileData,
       loading,
       checkProfile,
+      saveProfile // EXPORTED: This fixes the "saveProfile is not a function" error
     }}>
       {children}
     </ProfileContext.Provider>

@@ -75,7 +75,6 @@ export default function CreateProfile() {
     mode: "onChange"
   })
 
-  // Pre-fill if editing existing profile
   useEffect(() => {
     if (profileData) {
       reset({
@@ -90,11 +89,15 @@ export default function CreateProfile() {
   const step0Data = watch(['age', 'dependents', 'incomeMonthly'])
   const isStep0Valid = step0Data.every(val => val !== undefined && val !== "" && val >= 0)
 
+  // FIX: Check if all questions have been answered (no zeros allowed)
+  const isRiskValid = riskAnswers.every(ans => ans >= 1 && ans <= 4)
+
   const handleRiskSelection = (index, value) => {
     const newAnswers = [...riskAnswers]
     newAnswers[index] = value
     setRiskAnswers(newAnswers)
-    // Auto-advance to next question after short delay
+    
+    // Auto-advance logic
     setTimeout(() => {
       if (step < 4) setStep(s => s + 1)
     }, 280)
@@ -109,35 +112,39 @@ export default function CreateProfile() {
 
   const riskInfo = calculateRisk()
 
-  // ── Submit: POST (new) or PUT (edit) ──────────────────────────────────────
   const onSubmit = async (formValues) => {
+    // FIX: Double check validity before sending
+    if (!isRiskValid) {
+      toast.error("Please answer all questions.")
+      return
+    }
+
     setIsSubmitting(true)
 
-    const finalScore = riskAnswers.reduce((a, b) => a + b, 0)
     const payload = {
       age:           Number(formValues.age),
       dependents:    Number(formValues.dependents),
       incomeMonthly: Number(formValues.incomeMonthly),
-      riskScore:     finalScore,
-      answers:       riskAnswers,
+      answers:       riskAnswers, // Backend expects array of 1-4
     }
 
     try {
       let res
       if (profileData) {
-        // Updating existing profile
         res = await API.put('/profile', payload)
       } else {
-        // Creating new profile
         res = await API.post('/profile', payload)
       }
 
-      // Update context so App.jsx sees profileExists = true immediately
-      saveProfile(res.data)
-      toast.success(profileData ? "Profile updated!" : "Profile created!")
-      navigate('/client/dashboard')
+      if (res.data.success) {
+        await saveProfile()
+        toast.success(profileData ? "Profile updated!" : "Profile created!")
+        navigate('/client/dashboard')
+      } else {
+        toast.error(res.data.message || "Failed to save")
+      }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to save profile'
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to save profile'
       toast.error(msg)
     } finally {
       setIsSubmitting(false)
@@ -178,7 +185,6 @@ export default function CreateProfile() {
 
       <div className="w-full max-w-xl bg-white border border-gray-100 rounded-[2.5rem] p-10 shadow-sm">
 
-        {/* ── Step 0: Financial Basics ── */}
         {step === 0 ? (
           <div className="space-y-8">
             <div className="text-center">
@@ -233,7 +239,6 @@ export default function CreateProfile() {
           </div>
 
         ) : (
-          /* ── Steps 1-4: Risk Questions ── */
           <div className="space-y-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-50 rounded-2xl mb-4 text-xl">
@@ -269,7 +274,6 @@ export default function CreateProfile() {
               ))}
             </div>
 
-            {/* Final step: show risk summary + submit */}
             {step === 4 && (
               <div className="pt-8 border-t border-gray-100">
                 <div className="flex justify-between items-end mb-3">
@@ -290,8 +294,8 @@ export default function CreateProfile() {
 
                 <button
                   onClick={handleSubmit(onSubmit)}
-                  disabled={isSubmitting}
-                  className="w-full mt-8 py-4 bg-gray-900 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 shadow-2xl disabled:opacity-50 transition-all"
+                  disabled={isSubmitting || !isRiskValid} // FIX: Disable if not all answered
+                  className="w-full mt-8 py-4 bg-gray-900 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isSubmitting
                     ? <Loader2 size={18} className="animate-spin" />
