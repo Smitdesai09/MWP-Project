@@ -3,7 +3,7 @@ const cors = require('cors')
 const cookiparser = require('cookie-parser')
 const connection = require('./config/connection')
 const dotenv = require('dotenv')
-// const { Globallimiter } = require('./middlewares/RateLimiter')
+const { Globallimiter } = require('./middlewares/RateLimiter')
 
 dotenv.config()
 connection()

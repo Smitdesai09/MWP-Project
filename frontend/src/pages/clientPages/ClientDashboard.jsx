@@ -14,6 +14,10 @@ import {
 import ProfileTab from './ProfileTab.jsx'
 import BudgetModule from './BudgetModule.jsx' 
 import Transaction from './Transaction.jsx'
+import GoalModule from './GoalModule.jsx'
+import Dashboard from './Dashboard.jsx'
+import HoldingsModule from './Holdingsmodule.jsx'
+
 
 const NAV_ITEMS = [
   { label: 'Dashboard',    icon: LayoutDashboard, path: '/client/dashboard'    },
@@ -163,15 +167,15 @@ export default function ClientDashboard() {
           <Routes>
             <Route index element={<Navigate to="dashboard" replace />} />
             
-            <Route path="dashboard" element={<ComingSoon title="Dashboard" />} />
+            <Route path="dashboard" element={<Dashboard/>} />
             
             {/* ✅ FIX: Removed leading slash. Now matches /client/profile correctly */}
             <Route path="profile" element={<ProfileTab />} />
             
             <Route path="transactions" element={<Transaction />} />
             <Route path="budget" element={<BudgetModule />} />
-            <Route path="goals" element={<ComingSoon title="Goals" />} />
-            <Route path="holdings" element={<ComingSoon title="Holdings" />} />
+            <Route path="goals" element={<GoalModule />} />
+            <Route path="holdings" element={<HoldingsModule />} />
           </Routes>
         </main>
       </div>
