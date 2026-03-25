@@ -10,10 +10,22 @@ import {
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 
+<<<<<<< HEAD
 // 1. IMPORT YOUR PROFILE TAB COMPONENT
 import ProfileTab from './ProfileTab.jsx'
 import BudgetModule from './BudgetModule.jsx' 
 import Transaction from './Transaction.jsx'
+=======
+// Import Page Components
+import ProfileTab from './ProfileTab.jsx'
+import BudgetModule from './BudgetModule.jsx' 
+import Transaction from './Transaction.jsx'
+import GoalModule from './GoalModule.jsx'
+import Dashboard from './Dashboard.jsx'
+import HoldingsModule from './Holdingsmodule.jsx'
+
+
+>>>>>>> 37fe88855e7e7cfb1dd2988088a2cb2ec10c2d5d
 const NAV_ITEMS = [
   { label: 'Dashboard',    icon: LayoutDashboard, path: '/client/dashboard'    },
   { label: 'Profile',      icon: User,            path: '/client/profile'      },
@@ -161,15 +173,27 @@ export default function ClientDashboard() {
         <main className="flex-1 overflow-y-auto bg-[#fafaf8]">
           <Routes>
             <Route index element={<Navigate to="dashboard" replace />} />
+<<<<<<< HEAD
             <Route path="dashboard" element={<ComingSoon title="Dashboard" />} />
             
             {/* 2. PLUG IN THE PROFILE TAB HERE */}
+=======
+            
+            <Route path="dashboard" element={<Dashboard/>} />
+            
+            {/* ✅ FIX: Removed leading slash. Now matches /client/profile correctly */}
+>>>>>>> 37fe88855e7e7cfb1dd2988088a2cb2ec10c2d5d
             <Route path="profile" element={<ProfileTab />} />
             
             <Route path="transactions" element={<Transaction />} />
             <Route path="budget" element={<BudgetModule />} />
+<<<<<<< HEAD
             <Route path="goals" element={<ComingSoon title="Goals" />} />
             <Route path="holdings" element={<ComingSoon title="Holdings" />} />
+=======
+            <Route path="goals" element={<GoalModule />} />
+            <Route path="holdings" element={<HoldingsModule />} />
+>>>>>>> 37fe88855e7e7cfb1dd2988088a2cb2ec10c2d5d
           </Routes>
         </main>
       </div>
