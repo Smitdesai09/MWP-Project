@@ -400,7 +400,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {budgets.map((b) => {
-                const spent = b.spent ?? 0
+                const spent = b.current ?? 0
                 const limit = b.limit ?? b.amount ?? 1
                 const pct = Math.min(Math.round((spent / limit) * 100), 100)
                 const over = pct >= 100
