@@ -35,6 +35,9 @@ app.use('/api/dashboard', require('./routes/DashboardRoutes'))
 app.use('/api/goals', require('./routes/GoalRoutes'))
 // Profile Router
 app.use('/api/profile', require('./routes/ProfileRoutes'))
+// Report Router
+app.use('/api/report', require('./routes/ReportRoutes'));
+
 
 
 app.use((err, req, res, next) => {
