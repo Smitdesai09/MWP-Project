@@ -3,8 +3,8 @@ import { Toaster } from 'react-hot-toast'
 export default function AppToaster() {
   return (
     <Toaster
+      limit={3}
       position="top-right"
-      // ✅ FIX: Force toaster to render above modals (z-index > 9999)
       containerStyle={{
         top: 20,
         right: 20,
@@ -22,7 +22,6 @@ export default function AppToaster() {
         },
         success: {
           duration: 3000,
-          // Specific overrides for success
           style: {
             background: '#111827',
             color: '#fff',
@@ -30,13 +29,38 @@ export default function AppToaster() {
         },
         error: {
           duration: 4000,
-          // Specific overrides for error
           style: {
             background: '#fff',
             color: '#dc2626',
             border: '1px solid #fecaca',
           },
         },
+        // ✅ ADD THIS: 90% Warning style
+        warning: {
+          duration: 3000,
+          style: {
+            background: '#FFFBEB',
+            color: '#92400E',
+            border: '1px solid #FDE68A',
+          },
+          iconTheme: {
+            primary: '#F59E0B',
+            secondary: '#FFFBEB',
+          }
+        },
+        // ✅ ADD THIS: 100% Budget Limit Exceeded style
+        budgetLimit: {
+          duration: 4000,
+          style: {
+            background: '#FEF2F2',
+            color: '#991B1B',
+            border: '1px solid #FECACA',
+          },
+          iconTheme: {
+            primary: '#EF4444',
+            secondary: '#FEF2F2',
+          }
+        }
       }}
     />
   )

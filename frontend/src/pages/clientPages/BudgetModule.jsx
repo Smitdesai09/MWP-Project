@@ -1,252 +1,383 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { 
-  Plus, Edit2, Loader2, X, Calendar, ChevronRight, AlertCircle, Target 
-} from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import toast from 'react-hot-toast'
-import API from '../../services/api'
+import api from '../../services/api.js'
+import {
+  Plus, Edit3, X, ChevronDown, Loader2, Target,
+  AlertTriangle, CheckCircle2, TrendingDown
+} from 'lucide-react'
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const MONTHS = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
-const YEARS = [2025, 2026]
+// ─── CUSTOM DROPDOWN ─────────────────────────────────────────────
+const CustomDropdown = ({ value, onChange, options, className = '', placeholder = 'Select...' }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef(null)
 
-// ─── 1. MODAL COMPONENT ──────────────────────────────────────────────────────
-const BudgetModal = ({ isOpen, onClose, onSubmit, formData, setFormData, isEditing }) => {
-  if (!isOpen) return null;
+  useEffect(() => {
+    const handleClickOutside = (event) => { if (ref.current && !ref.current.contains(event.target)) setIsOpen(false) }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto font-sans">
-      <div 
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity cursor-pointer" 
-        onClick={onClose} 
-      />
-      
-      <div className="relative bg-white w-full max-w-md rounded-3xl sm:rounded-[40px] shadow-2xl p-6 sm:p-10 animate-fade-up my-auto border border-slate-100">
-        <div className="flex justify-between items-center mb-6 sm:mb-8">
-          <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 font-serif">
-            {isEditing ? 'Adjust Limit' : 'New Budget'}
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-gray-400">
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Category Name</label>
-            <input 
-              type="text" 
-              disabled={isEditing}
-              placeholder="e.g. Food"
-              className="w-full px-4 sm:px-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-slate-900/10 focus:outline-none disabled:opacity-50 transition-all font-sans"
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Monthly Limit (₹)</label>
-            <input 
-              type="number" 
-              placeholder="12000"
-              className="w-full px-4 sm:px-5 py-3.5 sm:py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-slate-900/10 focus:outline-none transition-all font-sans"
-              value={formData.monthlyLimit}
-              onChange={(e) => setFormData({...formData, monthlyLimit: e.target.value})}
-              required
-            />
-          </div>
-          <button type="submit" className="w-full py-3.5 sm:py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-900/10 mt-4">
-            {isEditing ? <Edit2 size={18} /> : <Plus size={18} />}
-            {isEditing ? 'Update Plan' : 'Create Budget'}
-          </button>
-        </form>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-// ─── 2. BUDGET CARD ────────────────────────────────────────────────
-const BudgetCard = ({ budget, onEdit, index }) => {
-  const isOver = budget.percentage >= 100
-  const isWarning = budget.percentage >= 80 && !isOver
-  
-  const barColor = isOver ? 'bg-red-500' : isWarning ? 'bg-amber-400' : 'bg-blue-600'
-  const statusTextColor = isOver ? 'text-red-500' : 'text-emerald-500'
+  const selectedOption = options.find(o => o.value === value)
 
   return (
-    <div 
-      className={`bg-white rounded-3xl sm:rounded-[40px] p-6 sm:p-9 transition-all duration-300 border ${
-        isOver ? 'border-slate-900 shadow-2xl scale-[1.01]' : 'border-transparent shadow-sm hover:border-slate-900'
-      }`}
-      style={{ animation: `fadeUp 0.4s ${index * 0.1}s both` }}
-    >
-      <div className="flex justify-between items-start mb-6">
-        {/* FIXED: Capitalize category display */}
-        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 font-serif truncate pr-2">
-          {budget.category.charAt(0).toUpperCase() + budget.category.slice(1)}
-        </h3>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-lg sm:text-xl font-bold text-slate-900 font-sans">₹{budget.limit.toLocaleString('en-IN')}</span>
-          <button onClick={() => onEdit(budget)} className="text-slate-300 hover:text-slate-900 transition-colors p-1">
-            <Edit2 size={16} />
-          </button>
+    <div className={`relative ${className}`} ref={ref}>
+      <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-left outline-none cursor-pointer transition-all pr-10 flex items-center justify-between hover:border-gray-400 focus:outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/5 text-sm">
+        <span className={`truncate ${selectedOption ? 'text-gray-900' : 'text-gray-400'}`}>{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-fade-up">
+          <div className="max-h-60 overflow-y-auto py-1">
+            {options.map((opt) => (
+              <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setIsOpen(false) }} className={`w-full text-left px-4 py-2 text-sm transition-all duration-150 ${value === opt.value ? 'bg-gray-900 text-white font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+    </div>
+  )
+}
 
-      <div className="mb-2 flex items-baseline gap-2">
-        <span className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight font-sans">{budget.percentage}%</span>
-        {isOver && <AlertCircle size={16} className="text-red-500 animate-pulse" />}
-      </div>
+// ─── Constants & Formatters ──────────────────────────────────────
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+const currentYear = new Date().getFullYear()
+const YEARS = Array.from({ length: 3 }, (_, i) => currentYear - 2 + i)
+const MAX_BUDGET_LIMIT = 99999999
 
-      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-6 sm:mb-8 mt-2">
-        <div 
-          className={`h-full ${barColor} transition-all duration-1000 ease-out`}
-          style={{ width: `${Math.min(budget.percentage, 100)}%` }}
-        />
-      </div>
+const monthOptions = MONTHS.map((m, i) => ({ value: i + 1, label: m }))
+const yearOptions = YEARS.map(y => ({ value: y, label: y.toString() }))
 
-      <div className="flex justify-between items-center text-sm font-bold pt-4 border-t border-slate-50 font-sans">
-        <span className="text-slate-400 tracking-tight">₹{budget.current.toLocaleString('en-IN')} spent</span>
-        <span className={statusTextColor}>
-          {isOver 
-            ? `₹${Math.abs(budget.remaining).toLocaleString('en-IN')} over` 
-            : `₹${budget.remaining.toLocaleString('en-IN')} left`}
-        </span>
+const fmt = (n) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n ?? 0)
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+
+// ─── Zod Schema ────────────────────────────────────────────────
+const budgetSchema = z.object({
+  category: z.string().min(1, 'Category name is required').max(50, 'Category must be under 50 characters').trim().regex(/^[a-zA-Z]/, 'Must start with a letter').regex(/^[a-zA-Z0-9\s\-_.&']+$/, 'Contains invalid special characters'),
+  monthlyLimit: z.preprocess((val) => (val === '' || val === undefined ? undefined : Number(val)), z.number({ required_error: 'Monthly limit is required', invalid_type_error: 'Must be a valid number' }).positive('Must be greater than ₹0').max(MAX_BUDGET_LIMIT, `Cannot exceed ₹${MAX_BUDGET_LIMIT.toLocaleString('en-IN')}`).refine((val) => /^\d+(\.\d{1,2})?$/.test(val.toString()), 'Maximum 2 decimal places allowed'))
+})
+
+const editBudgetSchema = z.object({
+  monthlyLimit: z.preprocess((val) => (val === '' || val === undefined ? undefined : Number(val)), z.number({ required_error: 'Monthly limit is required', invalid_type_error: 'Must be a valid number' }).positive('Must be greater than ₹0').max(MAX_BUDGET_LIMIT, `Cannot exceed ₹${MAX_BUDGET_LIMIT.toLocaleString('en-IN')}`).refine((val) => /^\d+(\.\d{1,2})?$/.test(val.toString()), 'Maximum 2 decimal places allowed'))
+})
+
+const blockInvalidKeys = (e) => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault() }
+
+const inputCls = 'w-full px-3 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 focus:bg-white transition-all placeholder-gray-300'
+const errorInputCls = 'w-full px-3 py-2.5 text-sm text-gray-900 bg-gray-50 border border-red-300 rounded-xl focus:outline-none focus:border-red-400 focus:bg-white transition-all placeholder-gray-300'
+const inputDisabledCls = 'w-full px-3 py-2.5 text-sm text-gray-500 bg-gray-100 border border-gray-200 rounded-xl cursor-not-allowed'
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+// ─── RED TOAST COMPONENT ────────────────────────────────────────
+function BudgetToast({ title, message, icon: Icon }) {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl shadow-xl max-w-sm">
+      <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon size={14} className="text-red-600" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-red-800">{title}</p>
+        <p className="text-xs text-red-500 mt-0.5 leading-relaxed">{message}</p>
       </div>
     </div>
   )
 }
 
-// ─── 3. MAIN MODULE ──────────────────────────────────────────────────────────
+// ─── ADD MODAL ─────────────────────────────────────────────────
+function AddModal({ isOpen, onClose, onSaved }) {
+  const defaultValues = { category: '', monthlyLimit: '' }
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({ resolver: zodResolver(budgetSchema), defaultValues })
+
+  useEffect(() => { if (isOpen) reset(defaultValues) }, [isOpen, reset])
+  useEffect(() => {
+    if (!isOpen) return
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [isOpen, onClose])
+
+  const onSubmit = async (data) => {
+    try {
+      const payload = { category: data.category.trim().toLowerCase(), monthlyLimit: Number(data.monthlyLimit) }
+      const { data: res } = await api.post('/budgets', payload)
+      if (res.success) { toast.success(`"${data.category.trim()}" budget created!`); onSaved(); onClose() }
+      else { toast.error(res.error || 'Failed to create budget') }
+    } catch (err) { toast.error(err?.response?.data?.error || 'Something went wrong') }
+  }
+
+  if (!isOpen) return null
+  return createPortal(
+    <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5"><div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center"><Plus size={14} color="white" /></div><h2 className="font-display text-base font-semibold text-gray-900">New Budget</h2></div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4" noValidate>
+          <Field label="Category Name">
+            <input className={errors.category ? errorInputCls : inputCls} placeholder="e.g. Food, Transport, Shopping" {...register('category')} maxLength={50} autoComplete="off" autoFocus />
+            {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
+          </Field>
+          <Field label="Monthly Limit (₹)">
+            <input className={errors.monthlyLimit ? errorInputCls : inputCls} type="number" step="0.01" min="0.01" max={MAX_BUDGET_LIMIT} placeholder="e.g. 10000" {...register('monthlyLimit')} onKeyDown={blockInvalidKeys} />
+            {errors.monthlyLimit && <p className="text-red-500 text-xs mt-1">{errors.monthlyLimit.message}</p>}
+          </Field>
+          <div className="flex gap-2.5 pt-2">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60">{isSubmitting && <Loader2 size={14} className="animate-spin" />}Create Budget</button>
+          </div>
+        </form>
+      </div>
+    </div>, document.body
+  )
+}
+
+// ─── EDIT MODAL ────────────────────────────────────────────────
+function EditModal({ isOpen, budget, onClose, onSaved }) {
+  const defaultValues = { monthlyLimit: budget?.limit?.toString() ?? '' }
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({ resolver: zodResolver(editBudgetSchema), defaultValues })
+
+  useEffect(() => { if (isOpen && budget) reset({ monthlyLimit: budget.limit?.toString() ?? '' }) }, [isOpen, budget, reset])
+  useEffect(() => {
+    if (!isOpen) return
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [isOpen, onClose])
+
+  const onSubmit = async (data) => {
+    if (!budget?._id) return
+    try {
+      const { data: res } = await api.patch(`/budgets/${budget._id}`, { monthlyLimit: Number(data.monthlyLimit) })
+      if (res.success) { toast.success(`"${budget.category}" limit updated!`); onSaved(); onClose() }
+      else { toast.error(res.error || 'Failed to update budget') }
+    } catch (err) { toast.error(err?.response?.data?.error || 'Something went wrong') }
+  }
+
+  if (!isOpen || !budget) return null
+  const displayName = cap(budget.category)
+
+  return createPortal(
+    <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5"><div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center"><Edit3 size={14} color="white" /></div><div><h2 className="font-display text-sm font-semibold text-gray-900">Adjust Limit</h2><p className="text-xs text-gray-400 truncate max-w-[180px]">{displayName}</p></div></div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4" noValidate>
+          <Field label="Category"><input className={inputDisabledCls} value={displayName} disabled /></Field>
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+            <div><p className="text-xs text-gray-400">Current Limit</p><p className="text-sm font-semibold text-gray-700">₹{fmt(budget.limit)}</p></div>
+            <div className="text-right"><p className="text-xs text-gray-400">Spent</p><p className="text-sm font-semibold text-gray-700">₹{fmt(budget.current)}</p></div>
+          </div>
+          <Field label="New Monthly Limit (₹)">
+            <input className={errors.monthlyLimit ? errorInputCls : inputCls} type="number" step="0.01" min="0.01" max={MAX_BUDGET_LIMIT} placeholder="Enter new limit" {...register('monthlyLimit')} onKeyDown={blockInvalidKeys} autoFocus />
+            {errors.monthlyLimit && <p className="text-red-500 text-xs mt-1">{errors.monthlyLimit.message}</p>}
+          </Field>
+          <div className="flex gap-2.5">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60">{isSubmitting && <Loader2 size={14} className="animate-spin" />}Update</button>
+          </div>
+        </form>
+      </div>
+    </div>, document.body
+  )
+}
+
+// ─── BUDGET CARD ───────────────────────────────────────────────
+function BudgetCard({ budget, onEdit }) {
+  const percentage = Math.round(budget.percentage ?? 0)
+  const isOver = percentage >= 100
+  const isWarning = percentage >= 90 && !isOver
+  const remaining = budget.limit - budget.current
+  const displayName = cap(budget.category)
+
+  const statusMeta = isOver
+    ? { label: 'Exceeded', color: 'text-red-500', bg: 'bg-red-50', icon: AlertTriangle }
+    : isWarning
+      ? { label: 'Warning', color: 'text-amber-600', bg: 'bg-amber-50', icon: TrendingDown }
+      : { label: 'Safe', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle2 }
+
+  const StatusIcon = statusMeta.icon
+  const barColor = isOver ? 'bg-gradient-to-r from-red-400 to-rose-500' : isWarning ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-emerald-400 to-teal-500'
+  const topBar = isOver ? 'bg-gradient-to-r from-red-400 to-rose-400' : isWarning ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-emerald-400 to-teal-400'
+
+  return (
+    <div className="group bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden">
+      <div className={`h-1 w-full ${topBar}`} />
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0 pr-3">
+            <h3 className="font-display text-[15px] font-semibold text-gray-900 truncate">{displayName}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">₹{fmt(budget.limit)} monthly limit</p>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusMeta.bg} ${statusMeta.color}`}>
+              <StatusIcon size={9} />{statusMeta.label}
+            </span>
+            <button onClick={() => onEdit(budget)} className="p-1.5 rounded-lg text-gray-300 hover:text-gray-700 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100">
+              <Edit3 size={13} />
+            </button>
+          </div>
+        </div>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-display text-2xl font-bold text-gray-900">{percentage}%</span>
+            <span className="text-xs font-medium text-gray-400">Monthly Budget</span>
+          </div>
+          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${Math.min(percentage, 100)}%` }} />
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-t border-gray-50 pt-3">
+          <div><p className="text-xs text-gray-400 mb-0.5">Spent</p><p className="text-sm font-semibold text-gray-900">₹{fmt(budget.current)}</p></div>
+          <div className="text-right"><p className="text-xs text-gray-400 mb-0.5">{isOver ? 'Overspent' : 'Remaining'}</p><p className={`text-sm font-semibold ${isOver ? 'text-red-500' : 'text-emerald-600'}`}>{isOver ? '-' : ''}₹{fmt(Math.abs(remaining))}</p></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── EMPTY STATE ───────────────────────────────────────────────
+function EmptyState({ onAdd }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4"><Target size={26} className="text-gray-400" /></div>
+      <h3 className="font-display text-lg font-semibold text-gray-900 mb-1">No active budgets</h3>
+      <p className="text-sm text-gray-400 max-w-xs mb-6">Set monthly spending limits for categories to track your expenses better.</p>
+      <button onClick={onAdd} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors"><Plus size={15} /> Set First Budget</button>
+    </div>
+  )
+}
+
+// ─── MAIN BUDGET MODULE ────────────────────────────────────────
 export default function BudgetModule() {
   const [budgets, setBudgets] = useState([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [year, setYear] = useState(new Date().getFullYear())
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [formData, setFormData] = useState({ category: '', monthlyLimit: '' })
+  const [year, setYear] = useState(currentYear)
 
-  const fetchBudgets = useCallback(async () => {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+
+  const abortRef = useRef(null)
+  const alertedRef = useRef(new Set())
+
+  const fetchBudgets = useCallback(async (signal) => {
     setLoading(true)
     try {
-      const { data } = await API.get('/budgets', { params: { month, year } })
+      const params = { month, year }
+      const { data } = await api.get('/budgets', { params, signal })
       if (data.success) setBudgets(data.budgets)
-    } catch (err) {
-      toast.error('Failed to load budgets')
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { if (err.code !== 'ERR_CANCELED') toast.error('Failed to load budgets') }
+    finally { if (!signal?.aborted) setLoading(false) }
   }, [month, year])
 
-  useEffect(() => { fetchBudgets() }, [fetchBudgets])
+  useEffect(() => {
+    if (abortRef.current) abortRef.current.abort()
+    const c = new AbortController(); abortRef.current = c
+    fetchBudgets(c.signal)
+    return () => c.abort()
+  }, [fetchBudgets])
 
-  const handleOpenModal = (budget = null) => {
-    if (budget) {
-      setEditingId(budget._id)
-      // Note: Budget category is lowercase from DB, we show it in input as is (or capitalize it)
-      setFormData({ category: budget.category, monthlyLimit: String(budget.limit) })
-    } else {
-      setEditingId(null)
-      setFormData({ category: '', monthlyLimit: '' })
-    }
-    setIsModalOpen(true)
-  }
+  // ─── CONSOLIDATED TOAST LOGIC ────────────────────────────────
+  useEffect(() => {
+    if (loading || budgets.length === 0) return
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      if (editingId) {
-        await API.patch(`/budgets/${editingId}`, { monthlyLimit: Number(formData.monthlyLimit) })
-        toast.success('Budget limit updated')
-      } else {
-        // Backend will handle .toLowerCase() for category
-        await API.post('/budgets', { 
-            category: formData.category.trim(), 
-            monthlyLimit: Number(formData.monthlyLimit) 
-        })
-        toast.success('Category plan created')
+    const exceeded = budgets.filter(b => b.percentage >= 100)
+    const warning = budgets.filter(b => b.percentage >= 90 && b.percentage < 100)
+
+    if (exceeded.length > 0) {
+      const key = `exceeded-${month}-${year}`
+      if (!alertedRef.current.has(key)) {
+        alertedRef.current.add(key)
+        const names = exceeded.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
+        const list = names.join(' · ')
+        const msg = exceeded.length === 1
+          ? `${names[0]} has exceeded its limit`
+          : `${exceeded.length} budgets exceeded: ${list}`
+        toast.custom(
+          () => <BudgetToast title="Budgets Exceeded" message={msg} icon={AlertTriangle} />,
+          { duration: 7000, id: key }
+        )
       }
-      setIsModalOpen(false)
-      fetchBudgets()
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Operation failed')
     }
-  }
+
+    if (warning.length > 0) {
+      const key = `warning-${month}-${year}`
+      if (!alertedRef.current.has(key)) {
+        alertedRef.current.add(key)
+        const names = warning.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
+        const list = names.join(' · ')
+        const msg = warning.length === 1
+          ? `${names[0]} is near its limit`
+          : `${warning.length} budgets near limit: ${list}`
+        toast.custom(
+          () => <BudgetToast title="Budget Alerts" message={msg} icon={TrendingDown} />,
+          { duration: 7000, id: key }
+        )
+      }
+    }
+  }, [budgets, loading, month, year])
+
+  const refetchAll = useCallback(() => { fetchBudgets() }, [fetchBudgets])
+
+  const handleSaveSuccess = useCallback(() => {
+    alertedRef.current.delete(`exceeded-${month}-${year}`)
+    alertedRef.current.delete(`warning-${month}-${year}`)
+    refetchAll()
+  }, [refetchAll, month, year])
+
+  const handleAddClose = useCallback(() => setIsAddOpen(false), [])
+  const handleEditClose = useCallback(() => setEditTarget(null), [])
+  const handleEdit = useCallback((budget) => setEditTarget(budget), [])
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-4 sm:p-6 lg:p-12 font-sans overflow-x-hidden">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
-        .font-serif { font-family: 'Playfair Display', serif; }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      <div className="max-w-7xl mx-auto">
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white p-6 sm:p-8 lg:p-10 rounded-3xl sm:rounded-[2rem] border border-slate-100 shadow-sm mb-8">
-          <div style={{ animation: 'fadeUp 0.3s both' }}>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight leading-none font-serif">
-              Budget <span className="text-slate-400 font-normal italic">Planner</span>
-            </h1>
-            <p className="text-sm text-slate-400 mt-1.5">
-              {MONTHS[month - 1]} {year} · {budgets.length} {budgets.length === 1 ? 'category' : 'categories'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            <div className="flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3">
-              <Calendar size={14} className="text-slate-300 mr-2 hidden sm:block" />
-              <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="bg-transparent text-[11px] sm:text-xs font-bold uppercase outline-none cursor-pointer">
-                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-              </select>
-              <div className="mx-2 sm:mx-3 text-slate-200">|</div>
-              <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="bg-transparent text-[11px] sm:text-xs font-bold outline-none cursor-pointer">
-                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            
-            <button 
-              onClick={() => handleOpenModal()} 
-              className="bg-[#0F172A] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-xs sm:text-sm hover:bg-slate-800 transition-all flex items-center gap-2 shadow-xl shadow-slate-200 active:scale-95"
-            >
-              <Plus size={18} /> <span className="hidden sm:inline">Set New Limit</span> <span className="sm:hidden">Add New</span>
-            </button>
-          </div>
+    <div className="min-h-full p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex-1">
+          <h1 className="font-display text-2xl font-bold text-gray-900">Budget Planner</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Showing data for {MONTHS[month - 1]} {year} · {budgets.length} {budgets.length === 1 ? 'category' : 'categories'}
+          </p>
         </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-4 text-slate-300">
-            <Loader2 className="animate-spin" size={48} />
-            <p className="text-slate-400 font-medium italic font-sans tracking-wide">Analyzing your spending...</p>
-          </div>
-        ) : budgets.length === 0 ? (
-          <div className="text-center py-32 bg-white rounded-3xl sm:rounded-[40px] border border-dashed border-slate-200 animate-fade-up">
-            <Target className="mx-auto text-slate-200 mb-4" size={48} />
-            <p className="text-slate-400 font-medium font-serif text-xl sm:text-2xl">No active budgets yet.</p>
-            <p className="text-slate-300 text-sm mt-1">Start by setting a monthly limit for a category.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
-            {budgets.map((b, i) => (
-              <BudgetCard key={b._id} budget={b} onEdit={handleOpenModal} index={i} />
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+          <CustomDropdown value={month} onChange={(val) => setMonth(Number(val))} options={monthOptions} className="w-36" />
+          <CustomDropdown value={year} onChange={(val) => setYear(Number(val))} options={yearOptions} className="w-24" />
+          <button onClick={() => setIsAddOpen(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 whitespace-nowrap">
+            <Plus size={15} /> <span className="hidden sm:inline">Set New Budget</span><span className="sm:hidden">Add</span>
+          </button>
+        </div>
       </div>
 
-      <BudgetModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleSubmit}
-        formData={formData}
-        setFormData={setFormData}
-        isEditing={!!editingId}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-24"><Loader2 size={26} className="animate-spin text-gray-400" /></div>
+      ) : budgets.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100"><EmptyState onAdd={() => setIsAddOpen(true)} /></div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {budgets.map(b => (
+            <BudgetCard key={b._id} budget={b} onEdit={handleEdit} />
+          ))}
+        </div>
+      )}
+
+      <AddModal isOpen={isAddOpen} onClose={handleAddClose} onSaved={handleSaveSuccess} />
+      <EditModal isOpen={!!editTarget} budget={editTarget} onClose={handleEditClose} onSaved={handleSaveSuccess} />
     </div>
   )
 }

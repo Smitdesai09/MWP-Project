@@ -4,21 +4,20 @@ import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
 
-// Helper to extract profile data from GET response
+// Helper to extract profile data
 function extractProfile(data) {
-  if (!data) return null;
-  // Backend GET returns { success: true, data: profileObject }
-  if (data.data) return data.data;
-  if (data.profile) return data.profile;
-  if (data.age !== undefined || data.riskScore !== undefined) return data;
-  return null;
+  if (!data) return null
+  if (data.data)    return data.data
+  if (data.profile) return data.profile
+  if (data.age !== undefined || data.riskScore !== undefined) return data
+  return null
 }
 
 export const ProfileProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [profileExists, setProfileExists] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [profileData, setProfileData]     = useState(null);
 
   const checkProfile = async () => {
     if (!user) {
@@ -29,16 +28,24 @@ export const ProfileProvider = ({ children }) => {
     }
     
     try {
-      const res = await API.get('/profile');
+      // ⚠️ FIX: validateStatus prevents 404 from logging as an error.
+      // 404 is a valid state here: it just means "Profile not created yet".
+      const res = await API.get('/profile', {
+        validateStatus: (status) => status < 500
+      });
+
       const profile = extractProfile(res.data);
-      if (profile) {
-        setProfileData(profile);
-        setProfileExists(true);
-      } else {
+      
+      // Check for success OR if status is 404 (not found)
+      if (res.status === 404 || !profile) {
         setProfileExists(false);
         setProfileData(null);
+      } else {
+        setProfileData(profile);
+        setProfileExists(true);
       }
     } catch (err) {
+      // Only catches network errors now
       setProfileExists(false);
       setProfileData(null);
     } finally {
@@ -46,8 +53,6 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  // FIX: saveProfile function that triggers a re-fetch
-  // Since backend doesn't return the profile on POST/PATCH, we must GET it again
   const saveProfile = async () => {
     await checkProfile();
   };
@@ -65,7 +70,7 @@ export const ProfileProvider = ({ children }) => {
       profileData,
       loading,
       checkProfile,
-      saveProfile // EXPORTED: This fixes the "saveProfile is not a function" error
+      saveProfile
     }}>
       {children}
     </ProfileContext.Provider>

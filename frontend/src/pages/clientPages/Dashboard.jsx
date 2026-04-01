@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   Wallet, Target, PiggyBank, BarChart2, ArrowRight,
   CheckCircle2, AlertTriangle, ChevronRight,
-  IndianRupee, Loader2
+  IndianRupee, PieChart as PieChartIcon
 } from 'lucide-react'
 import API from '../../services/api'
 
@@ -15,6 +15,7 @@ const fmt = (n) =>
 const fmtShort = (n) => {
   const abs = Math.abs(n ?? 0)
   const sign = n < 0 ? '-' : ''
+
   if (abs >= 1e7) return `${sign}₹${(abs / 1e7).toFixed(2)}Cr`
   if (abs >= 1e5) return `${sign}₹${(abs / 1e5).toFixed(2)}L`
   if (abs >= 1e3) return `${sign}₹${(abs / 1e3).toFixed(1)}K`
@@ -41,9 +42,12 @@ function AllocationPie({ allocation, targetAllocation }) {
     { key: 'equity', label: 'Equity', color: '#1f2937', target: targetAllocation?.equity },
     { key: 'debt',   label: 'Debt',   color: '#6b7280', target: targetAllocation?.debt   },
     { key: 'gold',   label: 'Gold',   color: '#d97706', target: targetAllocation?.gold   },
+    { key: 'other',  label: 'Other',  color: '#9ca3af', target: 0 },
   ].map(d => ({ ...d, value: allocation?.[d.key] ?? 0 }))
 
-  const total = data.reduce((s, d) => s + d.value, 0) || 100
+  const total = data.reduce((s, d) => s + d.value, 0)
+  const isEmpty = total === 0
+
   const SIZE = 160
   const R = 58
   const CX = SIZE / 2
@@ -52,7 +56,7 @@ function AllocationPie({ allocation, targetAllocation }) {
 
   let cumAngle = -90
   const slices = data.map((d) => {
-    const pct   = d.value / total
+    const pct   = isEmpty ? (100 / 4) : (d.value / total)
     const angle = pct * 360
     const start = cumAngle
     cumAngle   += angle
@@ -82,26 +86,35 @@ function AllocationPie({ allocation, targetAllocation }) {
               key={s.key}
               d={s.path}
               fill="none"
-              stroke={s.color}
+              stroke={isEmpty ? '#e5e7eb' : s.color}
               strokeWidth={stroke}
               strokeLinecap="butt"
             />
           ))}
-          <text x={CX} y={CY - 6} textAnchor="middle" fontSize="11" fill="#9ca3af" fontWeight="600">Portfolio</text>
-          <text x={CX} y={CY + 10} textAnchor="middle" fontSize="11" fill="#9ca3af" fontWeight="600">Mix</text>
+          <text x={CX} y={CY - 6} textAnchor="middle" fontSize="11" fill="#9ca3af" fontWeight="600">
+            {isEmpty ? 'No Data' : 'Portfolio'}
+          </text>
+          <text x={CX} y={CY + 10} textAnchor="middle" fontSize="11" fill="#9ca3af" fontWeight="600">
+            {isEmpty ? 'Yet' : 'Mix'}
+          </text>
         </svg>
       </div>
 
       <div className="flex flex-col gap-2.5 w-full">
-        {data.map((d) => (
+        {slices.map((d) => (
           <div key={d.key} className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+              <span 
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                style={{ background: isEmpty ? '#e5e7eb' : d.color }} 
+              />
               <span className="text-xs font-medium text-gray-600 capitalize">{d.label}</span>
             </div>
             <div className="flex items-center gap-3 text-right">
-              <span className="text-sm font-bold text-gray-900">{d.value.toFixed(1)}%</span>
-              {d.target !== undefined && (
+              <span className={`text-sm font-bold ${isEmpty ? 'text-gray-400' : 'text-gray-900'}`}>
+                {(isEmpty ? 0 : d.value)?.toFixed(1) ?? '0.0'}%
+              </span>
+              {d.target !== undefined && d.target > 0 && !isEmpty && (
                 <span className="text-[10px] text-gray-400">target {d.target}%</span>
               )}
             </div>
@@ -114,6 +127,10 @@ function AllocationPie({ allocation, targetAllocation }) {
 
 // ─── Stat Card ───────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loading }) {
+  const strValue = String(value || '')
+  const parts = strValue.split('₹')
+  const hasRupee = parts.length === 2
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4">
       <div className="flex items-center justify-between mb-2">
@@ -123,8 +140,29 @@ function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loa
         </div>
       </div>
       {loading
-        ? <div className="h-7 w-28 bg-gray-100 rounded-lg animate-pulse mb-1" />
-        : <p className={`font-display text-xl font-bold ${accent} mb-0.5`}>{value}</p>
+        ? <div className="h-8 w-32 bg-gray-100 rounded-lg animate-pulse mb-1" />
+        : (
+          <p className={`
+            font-mono 
+            text-[1.35rem] 
+            leading-tight 
+            font-semibold 
+            tracking-tight 
+            ${accent} 
+            mb-0.5 
+            whitespace-nowrap 
+            overflow-hidden 
+            text-ellipsis
+          `}>
+            {hasRupee ? (
+              <>
+                {parts[0]}₹<span className="ml-0.5">{parts[1]}</span>
+              </>
+            ) : (
+              strValue
+            )}
+          </p>
+        )
       }
       <p className="text-xs text-gray-400">{sub}</p>
     </div>
@@ -134,7 +172,7 @@ function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loa
 // ─── Section Header ──────────────────────────────────────────────
 function SectionHeader({ title, to }) {
   return (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between mb-4">
       <h2 className="font-display text-sm font-semibold text-gray-900 uppercase tracking-wider">{title}</h2>
       {to && (
         <Link to={to}
@@ -228,55 +266,55 @@ export default function Dashboard() {
       {/* ── Phase 2: Investment Health ─────────────────────── */}
       <div className="grid lg:grid-cols-5 gap-4">
         
-        {/* Left: Holdings Summary (3 Metrics) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5">
+        {/* Left: Holdings Summary (3 Metrics) - FIXED SIZE & SPACING */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
           <SectionHeader title="Holdings Summary" to="/client/holdings" />
           
           {loading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+            <div className="space-y-4 flex-1">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4 flex-1 flex flex-col justify-center">
               {/* Total Value */}
-              <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+              <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between transition-all hover:shadow-sm">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium mb-0.5">Total Value</p>
-                  <p className="text-lg font-bold text-gray-900">₹{fmt(hold.totalValue)}</p>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Total Value</p>
+                  <p className="text-2xl font-bold text-gray-900 font-mono tracking-tight">₹{fmt(hold.totalValue)}</p>
                 </div>
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <BarChart2 size={15} className="text-gray-600" />
+                <div className="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <BarChart2 size={18} className="text-gray-600" />
                 </div>
               </div>
 
               {/* Total Invested */}
-              <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+              <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between transition-all hover:shadow-sm">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium mb-0.5">Total Invested</p>
-                  <p className="text-lg font-bold text-gray-900">₹{fmt(hold.totalInvestment)}</p>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Total Invested</p>
+                  <p className="text-2xl font-bold text-gray-900 font-mono tracking-tight">₹{fmt(hold.totalInvestment)}</p>
                 </div>
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <IndianRupee size={15} className="text-gray-600" />
+                <div className="w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <IndianRupee size={18} className="text-gray-600" />
                 </div>
               </div>
 
               {/* Total Gain/Loss */}
-              <div className={`p-3 rounded-xl flex items-center justify-between ${isGain ? 'bg-emerald-50' : 'bg-red-50'}`}>
+              <div className={`p-4 rounded-xl flex items-center justify-between transition-all hover:shadow-sm ${isGain ? 'bg-emerald-50' : 'bg-red-50'}`}>
                 <div>
-                  <p className={`text-xs font-medium mb-0.5 ${isGain ? 'text-emerald-600' : 'text-red-400'}`}>
+                  <p className={`text-xs font-medium mb-1 ${isGain ? 'text-emerald-600' : 'text-red-400'}`}>
                     Total {isGain ? 'Gain' : 'Loss'}
                   </p>
                   <div className="flex items-baseline gap-2">
-                    <p className={`text-lg font-bold ${isGain ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <p className={`text-2xl font-bold font-mono tracking-tight ${isGain ? 'text-emerald-600' : 'text-red-500'}`}>
                       {isGain ? '+' : '-'}₹{fmt(hold.totalGain)}
                     </p>
-                    <p className={`text-xs font-semibold ${isGain ? 'text-emerald-500' : 'text-red-400'}`}>
+                    <p className={`text-sm font-semibold ${isGain ? 'text-emerald-500' : 'text-red-400'}`}>
                       ({hold.totalPercentage}%)
                     </p>
                   </div>
                 </div>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isGain ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                  {isGain ? <TrendingUp size={15} className="text-emerald-600" /> : <TrendingDown size={15} className="text-red-500" />}
+                <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${isGain ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                  {isGain ? <TrendingUp size={18} className="text-emerald-600" /> : <TrendingDown size={18} className="text-red-500" />}
                 </div>
               </div>
             </div>
@@ -284,32 +322,33 @@ export default function Dashboard() {
         </div>
 
         {/* Right: Allocation & Recommendations */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
           <SectionHeader title="Allocation" />
           
           {loading ? (
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-4 flex-1">
               <Skeleton className="w-40 h-40 !rounded-full" />
               <div className="w-full space-y-2">
-                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
               </div>
             </div>
           ) : (
-            <>
+            <div className="flex-1 flex flex-col">
               <AllocationPie
                 allocation={hold.allocation}
                 targetAllocation={hold.targetAllocation}
               />
 
               {/* Recommendations */}
-              <div className="mt-5 pt-5 border-t border-gray-100">
+              <div className="mt-auto pt-5 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Recommendations</p>
                 <div className="space-y-2">
                   {(hold.recommendations ?? ['Portfolio is well aligned']).map((rec, i) => {
                     const isGood = rec.toLowerCase().includes('well aligned') || rec.toLowerCase().includes('aligned')
                     const isIncrease = rec.toLowerCase().startsWith('increase')
-                    const Icon = isGood ? CheckCircle2 : isIncrease ? TrendingUp : TrendingDown
-                    const color = isGood ? 'text-emerald-600 bg-emerald-50' : isIncrease ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'
+                    const isCategorize = rec.toLowerCase().includes('categorize')
+                    const Icon = isGood ? CheckCircle2 : isCategorize ? PieChartIcon : isIncrease ? TrendingUp : TrendingDown
+                    const color = isGood ? 'text-emerald-600 bg-emerald-50' : isCategorize ? 'text-gray-600 bg-gray-50' : isIncrease ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'
                     return (
                       <div key={i} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl ${color.split(' ')[1]}`}>
                         <Icon size={14} className={`${color.split(' ')[0]} flex-shrink-0 mt-0.5`} />
@@ -319,7 +358,7 @@ export default function Dashboard() {
                   })}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -368,7 +407,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex justify-between">
                       <p className="text-[11px] text-gray-400">{pct}% complete</p>
-                      <p className="text-[11px] text-gray-400">by {g.horizonyear}</p>
+                      <p className="text-[11px] text-gray-400">by {g.horizonyear} yrs</p>
                     </div>
                   </div>
                 )
@@ -401,14 +440,22 @@ export default function Dashboard() {
             <div className="space-y-3">
               {budgets.map((b) => {
                 const spent = b.spent ?? 0
-                const limit = b.limit ?? b.amount ?? 1
-                const pct = Math.min(Math.round((spent / limit) * 100), 100)
+                const limit = b.limit ?? 0
+                
+                const pct = limit > 0 ? Math.min(Math.round((spent / limit) * 100), 100) : 0
                 const over = pct >= 100
                 const warn = pct >= 80
+                
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                const monthLabel = monthNames[(b.month ?? 1) - 1] || ''
+                
                 return (
                   <div key={b._id} className="p-3 bg-gray-50 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-gray-800 truncate pr-2">{b.category || b.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{b.category || 'N/A'}</p>
+                        <span className="text-[10px] text-gray-400 font-medium">{monthLabel} {b.year}</span>
+                      </div>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${over ? 'bg-red-50 text-red-500' : warn ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                         {pct}%
                       </span>
@@ -465,7 +512,7 @@ export default function Dashboard() {
                 <tr className="border-b border-gray-100">
                   <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Type</th>
                   <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Category</th>
-                  <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Description</th>
+                  <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Title</th>
                   <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Date</th>
                   <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-5 py-2">Amount</th>
                 </tr>
@@ -474,6 +521,7 @@ export default function Dashboard() {
                 {(tx.recent ?? []).map((t) => {
                   const meta = CATEGORY_COLORS[t.type] || CATEGORY_COLORS.expense
                   const Icon = meta.icon
+                  const description = t.title || t.notes || '-'
                   return (
                     <tr key={t._id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3">
@@ -485,7 +533,7 @@ export default function Dashboard() {
                         <span className="text-xs font-medium text-gray-700">{t.category || 'N/A'}</span>
                       </td>
                       <td className="px-5 py-3">
-                        <span className="text-xs text-gray-500 truncate max-w-[200px] block">{t.description || '-'}</span>
+                        <span className="text-xs text-gray-500 truncate max-w-[200px] block">{description}</span>
                       </td>
                       <td className="px-5 py-3">
                         <span className="text-xs text-gray-400">{fmtDate(t.date)}</span>

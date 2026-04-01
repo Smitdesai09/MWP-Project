@@ -39,18 +39,25 @@ async function getDashboard(req, res) {
         let totalValue = 0;
         let totalInvestment = 0;
 
-        let allocation = { equity: 0, debt: 0, gold: 0 };
+        // ✅ FIX: Added "other" category
+        let allocation = { equity: 0, debt: 0, gold: 0, other: 0 };
 
         for (const h of holdings) {
             totalValue += h.currentValue;
             totalInvestment += h.purchaseValue;
 
-            // INLINE CATEGORY LOGIC (NO getCategory function)
+            // ✅ FIX: Now handles ALL 7 types from your enum
             let category = null;
 
-            if (["stock", "mf", "crypto"].includes(h.type)) category = "equity";
-            else if (["fd", "rd"].includes(h.type)) category = "debt";
-            else if (h.type === "gold") category = "gold";
+            if (["stock", "mf", "crypto"].includes(h.type)) {
+                category = "equity";
+            } else if (["fd", "rd"].includes(h.type)) {
+                category = "debt";
+            } else if (h.type === "gold") {
+                category = "gold";
+            } else if (h.type === "other") {
+                category = "other";  // ✅ NEW: Handle "other" type
+            }
 
             if (category && allocation[category] !== undefined) {
                 allocation[category] += h.currentValue;
@@ -63,30 +70,33 @@ async function getDashboard(req, res) {
             ? Number(((totalGain / totalInvestment) * 100).toFixed(2))
             : 0;
 
-        const total = totalValue || 1;
-
-        Object.keys(allocation).forEach(key => {
-            allocation[key] = Number(((allocation[key] / total) * 100).toFixed(2));
-        });
+        const total = totalValue || 0;
+        if (total > 0) {
+            Object.keys(allocation).forEach(key => {
+                allocation[key] = Number(((allocation[key] / total) * 100).toFixed(2));
+            });
+        }
 
         // ---------- RECOMMENDATIONS ----------
         let recommendations = [];
         let targetAllocation = null;
 
-        if (profile?.riskClass) {
+        if (profile?.riskLevel) {
             const targets = {
-                low: { equity: 20, debt: 70, gold: 10 },
-                moderate: { equity: 50, debt: 40, gold: 10 },
-                high: { equity: 60, debt: 30, gold: 10 }
+                low: { equity: 20, debt: 70, gold: 10, other: 0 },
+                moderate: { equity: 50, debt: 40, gold: 10, other: 0 },
+                high: { equity: 60, debt: 30, gold: 10, other: 0 }
             };
 
-            targetAllocation = targets[profile.riskClass];
+            targetAllocation = targets[profile.riskLevel];
 
             if (targetAllocation) {
+                // ✅ FIX: Only check equity, debt, gold for recommendations (other has 0% target)
                 const diff = {
                     equity: targetAllocation.equity - allocation.equity,
                     debt: targetAllocation.debt - allocation.debt,
                     gold: targetAllocation.gold - allocation.gold
+                    // "other" intentionally excluded - no target for uncategorized
                 };
 
                 Object.keys(diff).forEach(key => {
@@ -101,9 +111,52 @@ async function getDashboard(req, res) {
             }
         }
 
+        // ✅ FIX: Add recommendation if "other" has significant allocation
+        if (allocation.other > 10) {
+            recommendations.push(`Categorize ${allocation.other.toFixed(0)}% uncategorized holdings`);
+        }
+
         if (recommendations.length === 0) {
             recommendations = ["Portfolio is well aligned"];
         }
+
+        // ---------- BUDGETS WITH SPENT ----------
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear();
+
+        const budgetsWithSpent = budgets.map(budget => {
+            const budgetMonth = budget.month;
+            const budgetYear = budget.year;
+
+            const spent = transactions.reduce((sum, t) => {
+                if (t.type !== "expense") return sum;
+                if (t.category.toLowerCase() !== budget.category.toLowerCase()) return sum;
+
+                const tDate = new Date(t.date);
+                const tMonth = tDate.getMonth() + 1;
+                const tYear = tDate.getFullYear();
+
+                if (budgetMonth === currentMonth && budgetYear === currentYear) {
+                    if (tMonth === currentMonth && tYear === currentYear) {
+                        return sum + t.amount;
+                    }
+                } else {
+                    if (tMonth === budgetMonth && tYear === budgetYear) {
+                        return sum + t.amount;
+                    }
+                }
+                return sum;
+            }, 0);
+
+            return {
+                _id: budget._id,
+                category: budget.category,
+                month: budget.month,
+                year: budget.year,
+                limit: budget.monthlyLimit,
+                spent: spent
+            };
+        });
 
         // ---------- RESPONSE ----------
         res.json({
@@ -125,7 +178,7 @@ async function getDashboard(req, res) {
                     targetAllocation
                 },
                 goals,
-                budgets
+                budgets: budgetsWithSpent
             }
         });
 

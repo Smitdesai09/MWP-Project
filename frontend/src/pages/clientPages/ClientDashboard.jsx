@@ -21,7 +21,6 @@ import HoldingsModule from './Holdingsmodule.jsx'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',    icon: LayoutDashboard, path: '/client/dashboard'    },
-  { label: 'Profile',      icon: User,            path: '/client/profile'      },
   { label: 'Transactions', icon: ArrowLeftRight,  path: '/client/transactions' },
   { label: 'Budget',       icon: PiggyBank,       path: '/client/budget'       },
   { label: 'Goals',        icon: Target,          path: '/client/goals'        },
@@ -32,15 +31,20 @@ const getInitials = (name = '') =>
   name?.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'U'
 
 // ── Profile Popup Component ─────────────────────────────────────
-function ProfilePopup({ user, onLogout, onClose }) {
+function ProfilePopup({ user, onLogout, onManageProfile, onClose }) {
   const ref = useRef(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) onClose()
+      if (ref.current && !ref.current.contains(e.target)) {
+        onCloseRef.current()
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [onClose])
+  }, [])
 
   return (
     <div ref={ref} className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 overflow-hidden">
@@ -56,7 +60,19 @@ function ProfilePopup({ user, onLogout, onClose }) {
         </div>
       </div>
       <div className="py-1.5">
-        <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 font-medium hover:bg-red-50 transition-colors duration-150">
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={onManageProfile}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-150"
+        >
+          <User size={15} />
+          Manage Profile
+        </button>
+        <button
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 font-medium hover:bg-red-50 transition-colors duration-150"
+        >
           <LogOut size={15} />
           Sign out
         </button>
@@ -114,8 +130,17 @@ export default function ClientDashboard() {
     navigate('/login')
   }
 
+  const handleManageProfile = () => {
+    setProfileOpen(false)
+    navigate('/client/profile')
+  }
+
   const { pathname } = useLocation()
   const activeItem = NAV_ITEMS.find(i => pathname === i.path || pathname.startsWith(i.path + '/'))
+
+  const pageTitle = pathname === '/client/profile' || pathname.startsWith('/client/profile/')
+    ? 'Profile'
+    : (activeItem?.label || 'Dashboard')
 
   return (
     <div className="flex h-screen bg-[#fafaf8] overflow-hidden">
@@ -149,29 +174,36 @@ export default function ClientDashboard() {
               {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
             </button>
             <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"><Menu size={20} /></button>
-            <h1 className="hidden lg:block font-display text-lg font-semibold text-gray-900">{activeItem?.label || 'Dashboard'}</h1>
+            <h1 className="hidden lg:block font-display text-lg font-semibold text-gray-900">{pageTitle}</h1>
           </div>
 
           <div className="relative">
-            <button onClick={() => setProfileOpen(p => !p)} className="flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => setProfileOpen(p => !p)}
+              className="flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all"
+            >
               <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-bold text-white">{getInitials(user?.name)}</span>
               </div>
               <ChevronDown size={13} className={`text-gray-400 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
             </button>
-            {profileOpen && <ProfilePopup user={user} onLogout={handleLogout} onClose={() => setProfileOpen(false)} />}
+            {profileOpen && (
+              <ProfilePopup
+                user={user}
+                onLogout={handleLogout}
+                onManageProfile={handleManageProfile}
+                onClose={() => setProfileOpen(false)}
+              />
+            )}
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto bg-[#fafaf8]">
           <Routes>
             <Route index element={<Navigate to="dashboard" replace />} />
-            
-            <Route path="dashboard" element={<Dashboard/>} />
-            
-            {/* ✅ FIX: Removed leading slash. Now matches /client/profile correctly */}
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="profile" element={<ProfileTab />} />
-            
             <Route path="transactions" element={<Transaction />} />
             <Route path="budget" element={<BudgetModule />} />
             <Route path="goals" element={<GoalModule />} />
