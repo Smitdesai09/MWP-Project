@@ -7,6 +7,7 @@ const { Globallimiter } = require('./middlewares/RateLimiter')
 const auth = require('./routes/AuthRouter')
 const profile = require('./routes/ProfileRouter')
 const goal = require('./routes/GoalRouter')
+const calculator = require('./routes/CalculatorRouter')
 
 dotenv.config()
 connection()
@@ -25,8 +26,7 @@ app.use(Globallimiter)
 app.use('/api/auth',auth)
 app.use('/api/profile',profile)
 app.use('/api/goal',goal)
-
-
+app.use('/api/calc',calculator)
 
 app.use((err, req, res, next) => {
    const statusCode = err.statusCode || 500;
