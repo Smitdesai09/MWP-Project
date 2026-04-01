@@ -8,7 +8,7 @@ import api from '../../services/api'
 import {
   BarChart2, Plus, TrendingUp, TrendingDown, Edit3, Trash2, X,
   ChevronLeft, ChevronRight, ChevronDown, Loader2, IndianRupee,
-  Calendar, Layers, RefreshCw, Search
+  Calendar, Layers, RefreshCw, Search, Download
 } from 'lucide-react'
 
 // ─── ULTRA-OPTIMIZED ADAPTIVE DEBOUNCE HOOK ─────────────────────
@@ -546,16 +546,54 @@ export default function HoldingsModule() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const { searchValue, debouncedSearch, isSearching, handleSearchChange, clearSearch } = useDebouncedSearch()
   const holdingsAbortRef = useRef(null)
   const summaryAbortRef = useRef(null)
 
-  // ═══════════════════════════════════════════════════════════════
-  // KEY FIX: Separate summary and holdings fetching logic
-  // Summary ONLY fetches on mount + after CRUD operations
-  // Holdings fetches on mount + search/filter/page changes
-  // ═══════════════════════════════════════════════════════════════
+  // ── REFACTORED HOLDINGS DOWNLOAD HANDLER ──
+  const handleDownloadHoldingsCSV = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    const toastId = toast.loading('Preparing CSV report...');
+
+    try {
+      const params = {
+        type: typeFilter || undefined,
+        search: debouncedSearch || undefined
+      };
+
+      // CRITICAL: Pointing to /api/report/csv/holdings
+      // CRITICAL: responseType must be 'blob' for binary/file data
+      const response = await api.get('/report/csv/holdings', { 
+        params, 
+        responseType: 'blob' 
+      });
+
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `Holdings_Report_${timestamp}.csv`);
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Holdings report downloaded!', { id: toastId });
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error('Failed to download report', { id: toastId });
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   // Fetch Summary - ONLY called explicitly, NOT on search/filter changes
   const fetchSummary = useCallback(async (signal) => {
@@ -599,22 +637,17 @@ export default function HoldingsModule() {
     }
   }, [])
 
-  // ═══════════════════════════════════════════════════════════════
-  // INITIAL MOUNT: Fetch both in parallel
-  // ═══════════════════════════════════════════════════════════════
+  // INITIAL MOUNT
   useEffect(() => {
     const c = new AbortController()
     fetchHoldings(1, '', '', c.signal)
     fetchSummary(c.signal)
     return () => c.abort()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) 
 
-  // ═══════════════════════════════════════════════════════════════
-  // SEARCH/FILTER CHANGES: ONLY fetch holdings, NOT summary
-  // This is the KEY performance fix!
-  // ═══════════════════════════════════════════════════════════════
+  // SEARCH/FILTER CHANGES
   useEffect(() => {
-    setPage(1) // Reset page on filter change
+    setPage(1) 
   }, [typeFilter, debouncedSearch])
 
   useEffect(() => {
@@ -624,7 +657,7 @@ export default function HoldingsModule() {
     return () => c.abort()
   }, [debouncedSearch, typeFilter, fetchHoldings])
 
-  // Page change: ONLY fetch holdings
+  // Page change
   useEffect(() => {
     const c = new AbortController()
     holdingsAbortRef.current = c
@@ -632,20 +665,16 @@ export default function HoldingsModule() {
     return () => c.abort()
   }, [page, fetchHoldings, debouncedSearch, typeFilter])
 
-  // Ensure page doesn't exceed totalPages
   useEffect(() => {
     if (page > totalPages && totalPages > 0) setPage(totalPages)
   }, [totalPages, page])
 
-  // ═══════════════════════════════════════════════════════════════
-  // CRUD CALLBACKS: Fetch both summary AND holdings
-  // ═══════════════════════════════════════════════════════════════
+  // CRUD CALLBACKS
   const refetchAll = useCallback(() => {
-    fetchSummary() // Only summary, holdings will refetch via effects
-    setPage(1)     // This triggers holdings refetch
+    fetchSummary()
+    setPage(1) 
   }, [fetchSummary])
 
-  // Handle callbacks
   const handleSaveSuccess = useCallback(() => { refetchAll() }, [refetchAll])
   const handleDeleteConfirm = useCallback(() => { refetchAll() }, [refetchAll])
   const handleAddClose = useCallback(() => { setIsAddOpen(false) }, [])
@@ -656,7 +685,6 @@ export default function HoldingsModule() {
 
   return (
     <div className="min-h-full p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Holdings</h1>
@@ -664,18 +692,26 @@ export default function HoldingsModule() {
             {total > 0 ? `${total} holdings in portfolio` : 'Track your investment portfolio'}
           </p>
         </div>
-        <button
-          onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 self-start sm:self-auto"
-        >
-          <Plus size={15} /> Add Holding
-        </button>
+        <div className="flex gap-3">
+          <button
+            disabled={isDownloading}
+            onClick={handleDownloadHoldingsCSV}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isDownloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} 
+            Export CSV
+          </button>
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
+          >
+            <Plus size={15} /> Add Holding
+          </button>
+        </div>
       </div>
 
-      {/* Summary Cards - Now loads INSTANT on mount, stays stable during search/filter */}
       <SummaryCards summary={summary} loading={sumLoading} />
 
-      {/* Search & Filters - Only affects holdings list, NOT summary */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <SearchInput
           value={searchValue}
@@ -693,7 +729,7 @@ export default function HoldingsModule() {
             <button
               key={v}
               onClick={() => setTypeFilter(v)}
-              className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
+              className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all duration-150 ${
                 typeFilter === v
                   ? 'bg-gray-900 text-white border-gray-900'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
@@ -705,9 +741,7 @@ export default function HoldingsModule() {
         </div>
       </div>
 
-      {/* Holdings Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {/* Table Header */}
         <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-gray-50 bg-gray-50/60">
           <div className="w-9 flex-shrink-0" />
           <p className="flex-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</p>
@@ -717,7 +751,6 @@ export default function HoldingsModule() {
           <div className="w-16 flex-shrink-0" />
         </div>
 
-        {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 size={26} className="animate-spin text-gray-400" />
@@ -732,7 +765,6 @@ export default function HoldingsModule() {
           </div>
         )}
 
-        {/* Centered Pagination */}
         {totalPages > 1 && !loading && (
           <div className="flex items-center justify-center px-6 py-4 border-t border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-1.5">
@@ -744,11 +776,13 @@ export default function HoldingsModule() {
                 <ChevronLeft size={16} />
                 <span className="text-xs font-semibold hidden sm:inline">Prev</span>
               </button>
+              
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-1 py-1">
                 <span className="px-3 py-1 text-xs font-bold text-gray-900 bg-white rounded-md shadow-sm">{page}</span>
                 <span className="text-xs text-gray-400 px-1">of</span>
                 <span className="px-2 py-1 text-xs font-semibold text-gray-600">{totalPages}</span>
               </div>
+
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage(p => p + 1)}
@@ -762,7 +796,6 @@ export default function HoldingsModule() {
         )}
       </div>
 
-      {/* Modals */}
       <AddModal isOpen={isAddOpen} onClose={handleAddClose} onSaved={handleSaveSuccess} />
       <EditModal isOpen={!!editTarget} holding={editTarget} onClose={handleEditClose} onSaved={handleSaveSuccess} />
       <DeleteModal isOpen={!!deleteTarget} holding={deleteTarget} onClose={handleDeleteClose} onDeleted={handleDeleteConfirm} />

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -7,7 +7,7 @@ import {
   TrendingUp, User, ArrowLeftRight, PiggyBank,
   Target, BarChart2, LayoutDashboard,
   Menu, X, LogOut, ChevronDown, ChevronRight,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, Calculator
 } from 'lucide-react'
 
 // Import Page Components
@@ -17,6 +17,8 @@ import Transaction from './Transaction.jsx'
 import GoalModule from './GoalModule.jsx'
 import Dashboard from './Dashboard.jsx'
 import HoldingsModule from './Holdingsmodule.jsx'
+import CalculatorsList from '../../components/CalculatorsList.jsx'
+import CalculatorView from '../../components/CalculatorView.jsx'
 
 
 const NAV_ITEMS = [
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
   { label: 'Budget',       icon: PiggyBank,       path: '/client/budget'       },
   { label: 'Goals',        icon: Target,          path: '/client/goals'        },
   { label: 'Holdings',     icon: BarChart2,       path: '/client/holdings'     },
+  { label: 'Calculators',  icon: Calculator,      path: '/calculators'         }, // Added this line
 ]
 
 const getInitials = (name = '') =>
@@ -208,6 +211,8 @@ export default function ClientDashboard() {
             <Route path="budget" element={<BudgetModule />} />
             <Route path="goals" element={<GoalModule />} />
             <Route path="holdings" element={<HoldingsModule />} />
+            <Route path="calculators" element={<CalculatorsList />} />
+            <Route path="calculators/:slug" element={<CalculatorView />} /> {/* Added this route */}
           </Routes>
         </main>
       </div>

@@ -11,7 +11,9 @@ import ClientDashboard   from './pages/clientPages/ClientDashboard.jsx'
 import ProtectedRoute    from './pages/authPages/ProtectedRoute.jsx'
 import CreateProfile     from './pages/clientPages/CreateProfile.jsx'
 import { useProfile }    from './context/ProfileContext.jsx'
-import { useAuth }       from './context/AuthContext.jsx'
+import { useAuth } from './context/AuthContext.jsx'
+import CalculatorsList from './components/CalculatorsList.jsx'
+import CalculatorView from './components/CalculatorView.jsx'  
 
 // Simple Global Loader
 const GlobalLoader = () => (
@@ -37,6 +39,21 @@ export default function App() {
         {/* --- Public Routes --- */}
         <Route path="/"                      element={<Home />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/calculators" element={
+        <div className="min-h-screen bg-[#fafaf8] pt-32 px-4 sm:px-8 pb-20">
+          <div className="max-w-7xl mx-auto">
+           <CalculatorsList />
+          </div>
+         </div>
+        } />
+  
+      <Route path="/calculators/:slug" element={
+       <div className="min-h-screen bg-[#fafaf8] pt-32 px-4 sm:px-8 pb-20">
+          <div className="max-w-7xl mx-auto">
+        <CalculatorView />
+        </div>
+      </div>
+      } />
 
         {/* Auth Routes (Logged-out only) */}
         <Route path="/login" element={

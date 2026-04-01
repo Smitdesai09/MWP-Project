@@ -229,7 +229,7 @@ export default function Home() {
             <p className="text-gray-400 text-sm">SIP · EMI · CAGR · Retirement · Inflation — no signup needed</p>
           </div>
           <Link
-            to="/register"
+            to="/calculators"
             className="flex-shrink-0 inline-flex items-center gap-2 px-7 py-3.5 bg-white text-gray-900 text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors"
           >
             Try Calculators <Calculator size={16} />

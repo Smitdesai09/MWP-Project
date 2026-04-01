@@ -6,6 +6,7 @@ const dotenv = require('dotenv')
 const { Globallimiter } = require('./middlewares/RateLimiter')
 
 
+
 dotenv.config()
 connection()
 
@@ -38,8 +39,8 @@ app.use('/api/holdings', require('./routes/HoldingRoutes'))
 app.use('/api/dashboard', require('./routes/DashboardRoutes'))
 // Report Router
 app.use('/api/report', require('./routes/ReportRoutes'));
-
-
+// Calculate Router
+app.use('/api/calculate', require('./routes/CalculateRoutes'));
 
 app.use((err, req, res, next) => {
    const statusCode = err.statusCode || 500;

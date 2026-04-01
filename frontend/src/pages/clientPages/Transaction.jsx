@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import api from '../../services/api.js'
-import { Plus, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, X, ChevronRight, ChevronLeft, ChevronDown, Wallet, TrendingUp, ArrowDownCircle, Loader2, Search } from 'lucide-react'
+import { Plus, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, X, ChevronRight, ChevronLeft, ChevronDown, Wallet, TrendingUp, ArrowDownCircle, Loader2, Search, Download } from 'lucide-react'
 
 // ─── ULTRA-OPTIMIZED ADAPTIVE DEBOUNCE HOOK ───────────────────────
 function useDebouncedSearch() {
@@ -63,7 +63,7 @@ const transactionSchema = z.object({
   notes: z.string().optional().default('')
 })
 
-// ── 2. SUMMARY CARD ───────────────────────────────────────────────
+// ── 2. SUMMARY CARD ─────────────────────────────────────────────
 const StatCard = ({ title, amount, icon: Icon, colorClass, isLoading = false }) => (
   <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4">
     <div className="flex items-center justify-between mb-2">
@@ -108,7 +108,7 @@ const CustomDropdown = ({ value, onChange, options, className = '', placeholder 
   )
 }
 
-// ── 4. DELETE MODAL ────────────────────────────────────────────────
+// ── 4. DELETE MODAL ───────────────────────────────────────────────
 const DeleteModal = ({ isOpen, onClose, onConfirm, isLoading }) => {
   useEffect(() => {
     if (!isOpen) return
@@ -129,7 +129,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, isLoading }) => {
         </div>
         <div className="flex gap-2.5 px-6 pb-5">
           <button type="button" onClick={onClose} disabled={isLoading} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={onConfirm} disabled={isLoading} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60">{isLoading && <Loader2 size={14} className="animate-spin" />}Delete</button>
+          <button type="button" onClick={onConfirm} disabled={isLoading} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors flex items-center justify-center gap-2">{isLoading && <Loader2 size={14} className="animate-spin" />}Delete</button>
         </div>
       </div>
     </div>, document.body
@@ -261,12 +261,56 @@ export default function Transaction() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const itemsPerPage = 5 
   const { searchValue, debouncedSearch, isSearching, handleSearchChange, clearSearch } = useDebouncedSearch()
   const abortRef = useRef(null)
 
   const emptyFormValues = { title: '', type: 'expense', category: 'food', amount: '', date: new Date().toISOString().split('T')[0], notes: '' }
+
+  // ── REFACTORED DOWNLOAD HANDLER ──
+  const handleDownloadCSV = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    const toastId = toast.loading('Generating report...');
+
+    try {
+      // Backend expects month and year as query params in /api/report/csv/transactions
+      const params = {
+        month: filters.month,
+        year: filters.year
+      };
+
+      // CRITICAL: responseType must be 'blob' for binary/file data
+      const response = await api.get('/report/csv/transactions', { 
+        params, 
+        responseType: 'blob' 
+      });
+
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const monthName = new Date(0, filters.month - 1).toLocaleString('en', { month: 'short' });
+      link.setAttribute('download', `Transactions_${monthName}_${filters.year}.csv`);
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Report downloaded!', { id: toastId });
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error('Could not download report', { id: toastId });
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   const fetchTransactions = useCallback(async (signal) => {
     setLoading(true)
@@ -334,7 +378,17 @@ export default function Transaction() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Transactions</h1>
           <p className="text-sm text-gray-400 mt-0.5">Showing data for {new Date(0, filters.month - 1).toLocaleString('en', { month: 'long' })} {filters.year}</p>
         </div>
-        <button onClick={() => handleOpenModal()} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 self-start sm:self-auto"><Plus size={15} /> New Entry</button>
+        <div className="flex gap-3">
+          <button 
+            disabled={isDownloading}
+            onClick={handleDownloadCSV} 
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isDownloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} 
+            Export CSV
+          </button>
+          <button onClick={() => handleOpenModal()} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 self-start sm:self-auto"><Plus size={15} /> New Entry</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -366,7 +420,7 @@ export default function Transaction() {
           <div className="flex items-center justify-center py-24"><Loader2 size={26} className="animate-spin text-gray-400" /></div>
         ) : transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4"><Wallet size={26} className="text-gray-400" /></div>
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Wallet size={26} className="text-gray-400" /></div>
             <h3 className="font-display text-lg font-semibold text-gray-900 mb-1">No transactions found</h3>
             <p className="text-sm text-gray-400 max-w-xs mb-6">Try adjusting your search or filters.</p>
             <button onClick={() => handleOpenModal()} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-colors"><Plus size={15} /> Add First Transaction</button>
@@ -379,7 +433,7 @@ export default function Transaction() {
           </div>
         )}
 
-        {/* Centered Pagination - Removed "Showing X to Y" */}
+        {/* Centered Pagination */}
         {pagination.totalPages > 1 && !loading && (
           <div className="flex items-center justify-center px-6 py-4 border-t border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-1.5">
