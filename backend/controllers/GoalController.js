@@ -1,14 +1,14 @@
 const goalModel = require('../models/Goal')
 const calculation = require('../utils/calculation')
 
-exports.createGoal = async (req,res,next) =>{
-    try{
+exports.createGoal = async (req, res, next) => {
+    try {
         const userId = req.user._id;
 
-        const { name,targetCorpus,horizonyear,excpectedReturnPr,inflationPr,planType,progressCorpus } = req.body;
+        const { name, targetCorpus, horizonyear, excpectedReturnPr, inflationPr, planType, progressCorpus } = req.body;
 
-        if( name === undefined || targetCorpus === undefined || horizonyear===undefined || excpectedReturnPr===undefined || inflationPr===undefined || planType===undefined || progressCorpus===undefined){
-            return res.status(400).json({success:false,message:'All feild are required to create a goal'})
+        if (name === undefined || targetCorpus === undefined || horizonyear === undefined || excpectedReturnPr === undefined || inflationPr === undefined || planType === undefined || progressCorpus === undefined) {
+            return res.status(400).json({ success: false, message: 'All feild are required to create a goal' })
         }
 
         const calculate = calculation({
@@ -17,7 +17,7 @@ exports.createGoal = async (req,res,next) =>{
             excpectedReturnPr,
             inflationPr,
             planType,
-            progressCorpus:progressCorpus ||0
+            progressCorpus: progressCorpus || 0
         })
 
         const newgoal = await goalModel.create({
@@ -28,94 +28,69 @@ exports.createGoal = async (req,res,next) =>{
             excpectedReturnPr,
             inflationPr,
             planType,
-            progressCorpus:progressCorpus ||0,
+            progressCorpus: progressCorpus || 0,
             ...calculate
         })
 
-        return res.status(201).json({success:true,message:'Goal Created Succesfully..!',data:newgoal});
-    }catch(err){
+        return res.status(201).json({ success: true, message: 'Goal Created Succesfully..!', data: newgoal });
+    } catch (err) {
         next(err)
     }
 }
-exports.getGoals = async (req,res,next) =>{
-    try{
+exports.getGoals = async (req, res, next) => {
+    try {
         const userId = req.user._id;
 
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
-        const skip = (page - 1)*limit;
-
-        const { type,search } = req.query;
-
-        let filter={ userId };
-
-        if(type){
-            filter.planType = type;
+        const goals = await goalModel.find({ userId }).sort({ createdAt: -1 });
+        if (!goals) {
+            return res.status(404).json({ success: false, message: 'goal not found' })
         }
-
-        if(search){
-            filter.name = {$regex:search,$options:'i'}
-        }
-
-        const goals = await goalModel.find(filter).skip(skip).limit(limit).sort({createdAt:-1});
-        if(!goals){
-            return res.status(404).json({success:false,message:'goal not found'})
-        }
-        
-        const total = await goalModel.countDocuments(filter);
-
-        return res.status(200).json({
-            success:true,
-            page,
-            totalPage : Math.ceil(total/limit),
-            total,
-            data:goals
-        });
-    }catch(err){
+        return res.status(200).json({ success: true, count: goals.length, data: goals });
+    } catch (err) {
         next(err)
     }
 }
-exports.editGoal = async (req,res,next) =>{
-    try{
+exports.editGoal = async (req, res, next) => {
+    try {
         const userId = req.user._id;
         const { id } = req.params;
 
-        const goal = await goalModel.findOne({_id:id,userId})
-        if(!goal){
-            return res.status(404).json({success:false,message:'goal not found'})
+        const goal = await goalModel.findOne({ _id: id, userId })
+        if (!goal) {
+            return res.status(404).json({ success: false, message: 'goal not found' })
         }
 
         const updatedgoal = {
             name: req.body.name ?? goal.name,
-            targetCorpus : req.body.targetCorpus ?? goal.targetCorpus,
-            horizonyear : req.body.horizonyear ?? goal.horizonyear,
-            excpectedReturnPr : req.body.excpectedReturnPr ?? goal.excpectedReturnPr,
-            inflationPr : req.body.inflationPr ?? goal.inflationPr,
-            planType : req.body.planType ?? goal.planType,
-            progressCorpus:req.body.progressCorpus ?? goal.progressCorpus,
+            targetCorpus: req.body.targetCorpus ?? goal.targetCorpus,
+            horizonyear: req.body.horizonyear ?? goal.horizonyear,
+            excpectedReturnPr: req.body.excpectedReturnPr ?? goal.excpectedReturnPr,
+            inflationPr: req.body.inflationPr ?? goal.inflationPr,
+            planType: req.body.planType ?? goal.planType,
+            progressCorpus: req.body.progressCorpus ?? goal.progressCorpus,
         }
 
         const recalculate = calculation(updatedgoal)
 
-        const editedgoal = await goalModel.findByIdAndUpdate(id,{...updatedgoal,...recalculate},{new:true,runValidators:true})
+        const editedgoal = await goalModel.findByIdAndUpdate(id, { ...updatedgoal, ...recalculate }, { new: true, runValidators: true })
 
-        return res.status(200).json({success:true,message:'goal updated succesfully..!',data:editedgoal})
-    }catch(err){
+        return res.status(200).json({ success: true, message: 'goal updated succesfully..!', data: editedgoal })
+    } catch (err) {
         next(err)
     }
 }
-exports.singleGoal = async (req,res,next) =>{
-    try{
+exports.singleGoal = async (req, res, next) => {
+    try {
         const userId = req.user._id;
         const { id } = req.params;
 
-        const goal = await goalModel.findOne({_id:id,userId})
+        const goal = await goalModel.findOne({ _id: id, userId })
 
-        if(!goal){
-            return res.status(404).json({success:false,message:'goal not found'})
+        if (!goal) {
+            return res.status(404).json({ success: false, message: 'goal not found' })
         }
-        return res.status(200).json({success:true,data:goal});
-    }catch(err){
+        return res.status(200).json({ success: true, data: goal });
+    } catch (err) {
         next(err)
     }
 }

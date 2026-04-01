@@ -27,49 +27,54 @@ async function getDashboard(req, res) {
         // ---------- TRANSACTIONS ----------
         let totalIncome = 0;
         let totalExpense = 0;
+        const categoryExpense = {};
 
         for (const t of transactions) {
             if (t.type === "income") totalIncome += t.amount;
-            else if (t.type === "expense") totalExpense += t.amount;
+            else if (t.type === "expense") {
+                totalExpense += t.amount;
+                const cat = t.category || "Other";
+                categoryExpense[cat] = (categoryExpense[cat] || 0) + t.amount;
+            }
         }
 
         const balance = totalIncome - totalExpense;
 
+        // ---------- INCOME vs EXPENSE VISUAL ----------
+        const inflowOutflow = [
+            { type: "Income", amount: totalIncome },
+            { type: "Expense", amount: totalExpense },
+            { type: "Balance", amount: balance }
+        ];
+
+        // ---------- CATEGORY-WISE EXPENSE PIE CHART ----------
+        // ---------- CATEGORY-WISE EXPENSE PIE CHART (PERCENTAGE) ----------
+        const totalExpenseAmount = Object.values(categoryExpense).reduce((sum, amt) => sum + amt, 0);
+        const categoryPie = Object.keys(categoryExpense).map(cat => ({
+            category: cat,
+            percentage: totalExpenseAmount > 0 ? Number(((categoryExpense[cat] / totalExpenseAmount) * 100).toFixed(2)) : 0
+        }));
+
         // ---------- HOLDINGS ----------
         let totalValue = 0;
         let totalInvestment = 0;
-
-        // ✅ FIX: Added "other" category
         let allocation = { equity: 0, debt: 0, gold: 0, other: 0 };
 
         for (const h of holdings) {
             totalValue += h.currentValue;
             totalInvestment += h.purchaseValue;
 
-            // ✅ FIX: Now handles ALL 7 types from your enum
             let category = null;
+            if (["stock", "mf", "crypto"].includes(h.type)) category = "equity";
+            else if (["fd", "rd"].includes(h.type)) category = "debt";
+            else if (h.type === "gold") category = "gold";
+            else if (h.type === "other") category = "other";
 
-            if (["stock", "mf", "crypto"].includes(h.type)) {
-                category = "equity";
-            } else if (["fd", "rd"].includes(h.type)) {
-                category = "debt";
-            } else if (h.type === "gold") {
-                category = "gold";
-            } else if (h.type === "other") {
-                category = "other";  // ✅ NEW: Handle "other" type
-            }
-
-            if (category && allocation[category] !== undefined) {
-                allocation[category] += h.currentValue;
-            }
+            if (category) allocation[category] += h.currentValue;
         }
 
         const totalGain = totalValue - totalInvestment;
-
-        const totalPercentage = totalInvestment > 0
-            ? Number(((totalGain / totalInvestment) * 100).toFixed(2))
-            : 0;
-
+        const totalPercentage = totalInvestment > 0 ? Number(((totalGain / totalInvestment) * 100).toFixed(2)) : 0;
         const total = totalValue || 0;
         if (total > 0) {
             Object.keys(allocation).forEach(key => {
@@ -101,11 +106,10 @@ async function getDashboard(req, res) {
 
                 Object.keys(diff).forEach(key => {
                     if (Math.abs(diff[key]) > 5) {
-                        if (diff[key] > 0) {
-                            recommendations.push(`Increase ${key} to ${targetAllocation[key]}%`);
-                        } else {
-                            recommendations.push(`Decrease ${key} to ${targetAllocation[key]}%`);
-                        }
+                        recommendations.push(diff[key] > 0
+                            ? `Increase ${key} to ${targetAllocation[key]}%`
+                            : `Decrease ${key} to ${targetAllocation[key]}%`
+                        );
                     }
                 });
             }
@@ -116,18 +120,17 @@ async function getDashboard(req, res) {
             recommendations.push(`Categorize ${allocation.other.toFixed(0)}% uncategorized holdings`);
         }
 
-        if (recommendations.length === 0) {
-            recommendations = ["Portfolio is well aligned"];
+        if (allocation.other > 10) {
+            recommendations.push(`Categorize ${allocation.other.toFixed(0)}% uncategorized holdings`);
         }
+
+        if (recommendations.length === 0) recommendations = ["Portfolio is well aligned"];
 
         // ---------- BUDGETS WITH SPENT ----------
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
 
         const budgetsWithSpent = budgets.map(budget => {
-            const budgetMonth = budget.month;
-            const budgetYear = budget.year;
-
             const spent = transactions.reduce((sum, t) => {
                 if (t.type !== "expense") return sum;
                 if (t.category.toLowerCase() !== budget.category.toLowerCase()) return sum;
@@ -136,14 +139,10 @@ async function getDashboard(req, res) {
                 const tMonth = tDate.getMonth() + 1;
                 const tYear = tDate.getFullYear();
 
-                if (budgetMonth === currentMonth && budgetYear === currentYear) {
-                    if (tMonth === currentMonth && tYear === currentYear) {
-                        return sum + t.amount;
-                    }
-                } else {
-                    if (tMonth === budgetMonth && tYear === budgetYear) {
-                        return sum + t.amount;
-                    }
+                if ((budget.month === currentMonth && budget.year === currentYear
+                    && tMonth === currentMonth && tYear === currentYear) ||
+                    (tMonth === budget.month && tYear === budget.year)) {
+                    return sum + t.amount;
                 }
                 return sum;
             }, 0);
@@ -154,7 +153,7 @@ async function getDashboard(req, res) {
                 month: budget.month,
                 year: budget.year,
                 limit: budget.monthlyLimit,
-                spent: spent
+                spent
             };
         });
 
@@ -166,7 +165,9 @@ async function getDashboard(req, res) {
                     totalIncome,
                     totalExpense,
                     balance,
-                    recent: recentTransactions
+                    recent: recentTransactions,
+                    inflowOutflow,       // ✅ NEW
+                    categoryPie           // ✅ NEW
                 },
                 holdings: {
                     totalValue,

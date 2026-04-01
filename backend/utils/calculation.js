@@ -1,9 +1,9 @@
-const calculation = ({ targetCorpus,horizonyear,excpectedReturnPr,inflationPr,planType,progressCorpus=0}) =>{
+const calculation = ({ targetCorpus, horizonyear, excpectedReturnPr, inflationPr, planType, progressCorpus = 0 }) => {
 
-    const inflationRate = inflationPr/100;
-    const annualReturnRate = excpectedReturnPr/100;
-    const monthlyReturnRate = annualReturnRate/12;
-    const totalMonths = horizonyear*12;
+    const inflationRate = inflationPr / 100;
+    const annualReturnRate = excpectedReturnPr / 100;
+    const monthlyReturnRate = annualReturnRate / 12;
+    const totalMonths = horizonyear * 12;
 
     // futuretargetCorpus
 
@@ -27,26 +27,26 @@ const calculation = ({ targetCorpus,horizonyear,excpectedReturnPr,inflationPr,pl
     }
 
     // progress %
-    let progressPr = futureTargetCorpus>0 ? (progressCorpus/futureTargetCorpus)*100 : 0;
+    let progressPr = futureTargetCorpus > 0 ? (progressCorpus / futureTargetCorpus) * 100 : 0;
 
     // status
     let status = 'off_track'
 
-    if(progressPr>=75){
-        status='on_track'
+    if (progressPr >= 75) {
+        status = 'on_track'
     }
-    else if(progressPr>=40){
-        status='off_track'
+    else if (progressPr >= 40) {
+        status = 'off_track'
     }
-    else{
-        status='at_risk'
+    else {
+        status = 'at_risk'
     }
 
-    return{
-        futureTargetCorpus:Number(futureTargetCorpus.toFixed(2)),
-        suggestedSipMonthly:planType==='sip'?Number(suggestedSipMonthly.toFixed(2)):0,
-        suggestedLumpSum:planType==='lump_sum'?Number(suggestedLumpSum.toFixed(2)):0,
-        progressPr:Number(progressPr.toFixed(2)),
+    return {
+        futureTargetCorpus: Number(futureTargetCorpus.toFixed(2)),
+        suggestedSipMonthly: planType === 'sip' ? Number(suggestedSipMonthly.toFixed(2)) : 0,
+        suggestedLumpSum: planType === 'lump_sum' ? Number(suggestedLumpSum.toFixed(2)) : 0,
+        progressPr: Number(progressPr.toFixed(2)),
         status
     }
 }

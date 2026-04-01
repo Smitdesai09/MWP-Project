@@ -27,14 +27,13 @@ export default function App() {
   const { loading: authLoading }      = useAuth()
   const { loading: profileLoading }  = useProfile()
 
-  // ⚠️ CRITICAL: Wait for BOTH Auth and Profile to finish
+  // Wait for BOTH Auth and Profile to finish
   if (authLoading || profileLoading) return <GlobalLoader />
 
   return (
     <>
       <AppToaster />
       <Routes>
-        
         {/* --- Public Routes --- */}
         <Route path="/"                      element={<Home />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
@@ -59,10 +58,7 @@ export default function App() {
           </ProtectedRoute>
         } />
 
-        {/* 2. Client Dashboard 
-            FIX: Changed path to "/client/*" to handle nested routes properly.
-            This prevents the /dashboard/dashboard double URL issue.
-        */}
+        {/* 2. Client Dashboard */}
         <Route path="/client/*" element={
           <ProtectedRoute allowedRoles={['client']}>
             <ClientDashboard />

@@ -1,20 +1,20 @@
 const profile = require('../models/Profile')
 
-const calculateRisk = (answers)=>{
-    const riskScore = answers.reduce((sum,val)=> sum + val ,0)
+const calculateRisk = (answers) => {
+    const riskScore = answers.reduce((sum, val) => sum + val, 0)
 
     let riskLevel = 'low'
 
-    if(riskScore<=5){
+    if (riskScore <= 5) {
         riskLevel = 'low'
     }
-    else if(riskScore<=8){
+    else if (riskScore <= 8) {
         riskLevel = 'moderate'
     }
-    else{
+    else {
         riskLevel = 'high'
     }
-    return { riskScore,riskLevel }
+    return { riskScore, riskLevel }
 }
 
 const validateAnswer = (answers) =>{
@@ -55,33 +55,29 @@ exports.createOrSaveProfile = async (req,res,next)=>{
             age,
             dependents,
             incomeMonthly,
-            riskAnswer:answers,
+            riskAnswer: answers,
             riskScore,
             riskLevel
         })
 
-        return res.status(201).json({success:true,message:'Profile created Successfully..!'})
+        return res.status(201).json({ success: true, message: 'Profile created Successfully..!' })
 
-    }catch(err){
-        // return res.status(500).json({
-        //     success:false,
-        //     message:err.message
-        // })
-        next(err);
+    } catch (err) {
+        return res.status(201).json({success:true,message:'Profile created Successfully..!'})
     }
 }
 
-exports.getProfile = async (req,res,next)=>{
-    try{
+exports.getProfile = async (req, res, next) => {
+    try {
         const userId = req.user._id;
-    
-        const existingprofile = await profile.findOne({userId})
-        if(!existingprofile){
-            return res.status(404).json({success:false,message:'Profile not found..!'})
+
+        const existingprofile = await profile.findOne({ userId })
+        if (!existingprofile) {
+            return res.status(404).json({ success: false, message: 'Profile not found..!' })
         }
 
-        return res.status(200).json({success:true,data:existingprofile})
-    }catch(err){
+        return res.status(200).json({ success: true, data: existingprofile })
+    } catch (err) {
         // return res.status(500).json({
         //     success:false,
         //     message:err.message
@@ -90,40 +86,40 @@ exports.getProfile = async (req,res,next)=>{
     }
 }
 
-exports.editProfile = async (req,res,next)=>{  
-    try{    
+exports.editProfile = async (req, res, next) => {
+    try {
         const userId = req.user._id;
-        const { age,dependents,incomeMonthly,answers } = req.body;
+        const { age, dependents, incomeMonthly, answers } = req.body;
 
-        const existprofile = await profile.findOne({userId})
-        if(!existprofile){
-            return res.status(404).json({success:false,message:'Profile Not Found'})
+        const existprofile = await profile.findOne({ userId })
+        if (!existprofile) {
+            return res.status(404).json({ success: false, message: 'Profile Not Found' })
         }
 
         // Validation for data inorder to store valid data in DB
-        if(age !== undefined){
-            if(typeof age!=='number'){
-                return res.status(400).json({success:false,message:'age must be in number only..!'})
+        if (age !== undefined) {
+            if (typeof age !== 'number') {
+                return res.status(400).json({ success: false, message: 'age must be in number only..!' })
             }
             existprofile.age = age
         }
-        if(dependents !== undefined){
-            if(typeof dependents!=='number'){
-                return res.status(400).json({success:false,message:'dependents must be in number only..!'})
+        if (dependents !== undefined) {
+            if (typeof dependents !== 'number') {
+                return res.status(400).json({ success: false, message: 'dependents must be in number only..!' })
             }
             existprofile.dependents = dependents
         }
-        if(incomeMonthly !== undefined){
-            if(typeof incomeMonthly!=='number'){
-                return res.status(400).json({success:false,message:'incomeMonthly must be in number only..!'})
+        if (incomeMonthly !== undefined) {
+            if (typeof incomeMonthly !== 'number') {
+                return res.status(400).json({ success: false, message: 'incomeMonthly must be in number only..!' })
             }
             existprofile.incomeMonthly = incomeMonthly
         }
-        if(answers!== undefined){
-            if(!validateAnswer(answers)){
-                return res.status(400).json({success:false,message:'Please Give Valid Answers..!'})
+        if (answers !== undefined) {
+            if (!validateAnswer(answers)) {
+                return res.status(400).json({ success: false, message: 'Please Give Valid Answers..!' })
             }
-            const {riskScore,riskLevel} = calculateRisk(answers)
+            const { riskScore, riskLevel } = calculateRisk(answers)
 
             existprofile.riskAnswer = answers
             existprofile.riskScore = riskScore
@@ -132,9 +128,9 @@ exports.editProfile = async (req,res,next)=>{
 
         await existprofile.save()
 
-        return res.status(200).json({success:true,message:'Profile Updated Successfully..!'})
+        return res.status(200).json({ success: true, message: 'Profile Updated Successfully..!' })
 
-    }catch(err){
+    } catch (err) {
         // return res.status(500).json({
         //     success:false,
         //     message:err.message

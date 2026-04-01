@@ -15,7 +15,6 @@ const fmt = (n) =>
 const fmtShort = (n) => {
   const abs = Math.abs(n ?? 0)
   const sign = n < 0 ? '-' : ''
-
   if (abs >= 1e7) return `${sign}₹${(abs / 1e7).toFixed(2)}Cr`
   if (abs >= 1e5) return `${sign}₹${(abs / 1e5).toFixed(2)}L`
   if (abs >= 1e3) return `${sign}₹${(abs / 1e3).toFixed(1)}K`
@@ -34,6 +33,134 @@ const STATUS_META = {
   on_track: { label: 'On Track', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle2 },
   off_track: { label: 'Off Track', color: 'text-amber-600', bg: 'bg-amber-50',   icon: TrendingDown  },
   at_risk:   { label: 'At Risk',   color: 'text-red-500',   bg: 'bg-red-50',     icon: AlertTriangle },
+}
+
+const FLOW_COLORS = ['#059669', '#dc2626', '#1f2937']
+const PIE_COLORS = [
+  '#1f2937', '#059669', '#d97706', '#7c3aed', '#dc2626',
+  '#2563eb', '#db2777', '#65a30d', '#ea580c', '#6b7280'
+]
+
+// ─── Shared Donut Builder ────────────────────────────────────────
+function DonutRing({ SIZE, R, stroke, slices, isEmpty, emptyColor, centerLabel }) {
+  const CX = SIZE / 2
+  const CY = SIZE / 2
+
+  let cumAngle = -90
+  const paths = slices.map((s, i) => {
+    const pct   = isEmpty ? (100 / slices.length) : (s.value / 100)
+    const angle = pct * 360
+    const start = cumAngle
+    cumAngle   += angle
+
+    const toRad = (deg) => (deg * Math.PI) / 180
+    const x1 = CX + R * Math.cos(toRad(start))
+    const y1 = CY + R * Math.sin(toRad(start))
+    const x2 = CX + R * Math.cos(toRad(start + angle))
+    const y2 = CY + R * Math.sin(toRad(start + angle))
+    const large = angle > 180 ? 1 : 0
+
+    const d = pct >= 0.999
+      ? `M ${CX} ${CY - R} A ${R} ${R} 0 1 1 ${CX - 0.001} ${CY - R} Z`
+      : `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`
+
+    return { ...s, d, color: isEmpty ? emptyColor : s.color }
+  })
+
+  return (
+    <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+      <circle cx={CX} cy={CY} r={R} fill="none" stroke="#f3f4f6" strokeWidth={stroke} />
+      {paths.map((p, i) => (
+        <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={stroke} strokeLinecap="butt" />
+      ))}
+      <text x={CX} y={CY + 5} textAnchor="middle" fontSize="13" fill="#6b7280" fontWeight="700">
+        {centerLabel}
+      </text>
+    </svg>
+  )
+}
+
+// ─── Inflow / Outflow Donut ──────────────────────────────────────
+function InflowOutflowChart({ data }) {
+  if (!data || data.length === 0) return null
+
+  const total = data.reduce((s, d) => s + Math.abs(d.amount), 0)
+  const isEmpty = total === 0
+
+  const slices = data.map((d, i) => ({
+    label: d.type,
+    value: isEmpty ? 0 : (Math.abs(d.amount) / total) * 100,
+    display: isEmpty ? '₹0' : fmtShort(d.amount),
+    color: FLOW_COLORS[i % FLOW_COLORS.length],
+  }))
+
+  return (
+    <div className="flex items-center gap-8">
+      <DonutRing
+        SIZE={160} R={54} stroke={22}
+        slices={slices}
+        isEmpty={isEmpty}
+        emptyColor="#e5e7eb"
+        centerLabel="Cash Flow"
+      />
+      <div className="flex flex-col gap-4 flex-1 min-w-0">
+        {slices.map((s) => (
+          <div key={s.label} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: s.color }} />
+              <span className="text-sm font-medium text-gray-700 truncate">{s.label}</span>
+            </div>
+            <span className="text-sm font-bold text-gray-900 flex-shrink-0">{s.display}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Expense Category Donut ──────────────────────────────────────
+function ExpensePieChart({ data }) {
+  const isEmpty = !data || data.length === 0 || data.every(d => d.percentage === 0)
+
+  const displayData = isEmpty
+    ? [{ category: 'No Data', percentage: 100, color: '#e5e7eb' }]
+    : data.map((d, i) => ({ ...d, color: PIE_COLORS[i % PIE_COLORS.length] }))
+
+  const showCount = 7
+  const visible   = displayData.slice(0, showCount)
+  const remaining = displayData.length - showCount
+
+  const slices = visible.map(d => ({
+    label: d.category,
+    value: d.percentage,
+    color: d.color,
+  }))
+
+  return (
+    <div className="flex items-center gap-8">
+      <DonutRing
+        SIZE={160} R={54} stroke={22}
+        slices={slices}
+        isEmpty={isEmpty}
+        emptyColor="#e5e7eb"
+        centerLabel="Expense"
+      />
+      <div className="flex flex-col gap-3 flex-1 min-w-0">
+        {visible.map((d) => (
+          <div key={d.category} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ background: d.color }} />
+              <span className="text-sm font-medium text-gray-700 capitalize truncate">{d.category}</span>
+            </div>
+            <span className="text-sm font-bold text-gray-900 flex-shrink-0">{d.percentage.toFixed(1)}%</span>
+          </div>
+        ))}
+        {remaining > 0 && (
+          <p className="text-xs text-gray-400 font-medium pl-[20px]">+{remaining} more categories</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── Allocation Pie Chart (pure SVG) ────────────────────────────
@@ -104,9 +231,9 @@ function AllocationPie({ allocation, targetAllocation }) {
         {slices.map((d) => (
           <div key={d.key} className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span 
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
-                style={{ background: isEmpty ? '#e5e7eb' : d.color }} 
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ background: isEmpty ? '#e5e7eb' : d.color }}
               />
               <span className="text-xs font-medium text-gray-600 capitalize">{d.label}</span>
             </div>
@@ -142,18 +269,7 @@ function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loa
       {loading
         ? <div className="h-8 w-32 bg-gray-100 rounded-lg animate-pulse mb-1" />
         : (
-          <p className={`
-            font-mono 
-            text-[1.35rem] 
-            leading-tight 
-            font-semibold 
-            tracking-tight 
-            ${accent} 
-            mb-0.5 
-            whitespace-nowrap 
-            overflow-hidden 
-            text-ellipsis
-          `}>
+          <p className="font-mono text-[1.35rem] leading-tight font-semibold tracking-tight mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
             {hasRupee ? (
               <>
                 {parts[0]}₹<span className="ml-0.5">{parts[1]}</span>
@@ -235,7 +351,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-full p-4 sm:p-6 lg:p-8 space-y-6">
 
-      {/* ── Phase 1: Financial Flow (3 Cards) ─────────────────── */}
+      {/* ── Summary Cards ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
           label="Balance"
@@ -263,20 +379,17 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── Phase 2: Investment Health ─────────────────────── */}
+      {/* ── Holdings & Allocation ─────────────────────────── */}
       <div className="grid lg:grid-cols-5 gap-4">
-        
-        {/* Left: Holdings Summary (3 Metrics) - FIXED SIZE & SPACING */}
+
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
           <SectionHeader title="Holdings Summary" to="/client/holdings" />
-          
           {loading ? (
             <div className="space-y-4 flex-1">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
             </div>
           ) : (
             <div className="space-y-4 flex-1 flex flex-col justify-center">
-              {/* Total Value */}
               <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between transition-all hover:shadow-sm">
                 <div>
                   <p className="text-xs text-gray-500 font-medium mb-1">Total Value</p>
@@ -286,8 +399,6 @@ export default function Dashboard() {
                   <BarChart2 size={18} className="text-gray-600" />
                 </div>
               </div>
-
-              {/* Total Invested */}
               <div className="p-4 bg-gray-50 rounded-xl flex items-center justify-between transition-all hover:shadow-sm">
                 <div>
                   <p className="text-xs text-gray-500 font-medium mb-1">Total Invested</p>
@@ -297,8 +408,6 @@ export default function Dashboard() {
                   <IndianRupee size={18} className="text-gray-600" />
                 </div>
               </div>
-
-              {/* Total Gain/Loss */}
               <div className={`p-4 rounded-xl flex items-center justify-between transition-all hover:shadow-sm ${isGain ? 'bg-emerald-50' : 'bg-red-50'}`}>
                 <div>
                   <p className={`text-xs font-medium mb-1 ${isGain ? 'text-emerald-600' : 'text-red-400'}`}>
@@ -321,10 +430,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right: Allocation & Recommendations */}
         <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 p-5 flex flex-col">
           <SectionHeader title="Allocation" />
-          
           {loading ? (
             <div className="flex flex-col items-center gap-4 flex-1">
               <Skeleton className="w-40 h-40 !rounded-full" />
@@ -334,12 +441,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col">
-              <AllocationPie
-                allocation={hold.allocation}
-                targetAllocation={hold.targetAllocation}
-              />
-
-              {/* Recommendations */}
+              <AllocationPie allocation={hold.allocation} targetAllocation={hold.targetAllocation} />
               <div className="mt-auto pt-5 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Recommendations</p>
                 <div className="space-y-2">
@@ -363,10 +465,41 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Phase 3: Planning (Goals & Budgets) ─────────────── */}
+      {/* ── Inflow/Outflow & Expense Donuts ───────────────── */}
       <div className="grid lg:grid-cols-2 gap-4">
-        
-        {/* Goals */}
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <SectionHeader title="Income vs Expense" />
+          {loading ? (
+            <div className="flex items-center gap-8">
+              <Skeleton className="w-[160px] h-[160px] !rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-4">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+              </div>
+            </div>
+          ) : (
+            <InflowOutflowChart data={tx.inflowOutflow} />
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <SectionHeader title="Expense Breakdown" />
+          {loading ? (
+            <div className="flex items-center gap-8">
+              <Skeleton className="w-[160px] h-[160px] !rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-3">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+              </div>
+            </div>
+          ) : (
+            <ExpensePieChart data={tx.categoryPie} />
+          )}
+        </div>
+      </div>
+
+      {/* ── Goals & Budgets ───────────────────────────────── */}
+      <div className="grid lg:grid-cols-2 gap-4">
+
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <SectionHeader title="Goals" to="/client/goals" />
           {loading ? (
@@ -419,7 +552,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Budgets */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <SectionHeader title="Budgets" to="/client/budget" />
           {loading ? (
@@ -440,15 +572,12 @@ export default function Dashboard() {
             <div className="space-y-3">
               {budgets.map((b) => {
                 const spent = b.spent ?? 0
-                const limit = b.limit ?? 0
-                
-                const pct = limit > 0 ? Math.min(Math.round((spent / limit) * 100), 100) : 0
+                const limit = b.limit ?? 1
+                const pct = Math.min(Math.round((spent / limit) * 100), 100)
                 const over = pct >= 100
                 const warn = pct >= 80
-                
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                 const monthLabel = monthNames[(b.month ?? 1) - 1] || ''
-                
                 return (
                   <div key={b._id} className="p-3 bg-gray-50 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
@@ -481,10 +610,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Phase 4: Recent Transactions (Table Layout) ─────── */}
+      {/* ── Recent Transactions ───────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <SectionHeader title="Recent Transactions" to="/client/transactions" />
-        
         {loading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (

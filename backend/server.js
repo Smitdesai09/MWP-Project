@@ -5,6 +5,7 @@ const connection = require('./config/connection')
 const dotenv = require('dotenv')
 const { Globallimiter } = require('./middlewares/RateLimiter')
 
+
 dotenv.config()
 connection()
 
@@ -23,6 +24,10 @@ app.use(cookiparser())
 
 // Auth Router
 app.use('/api/auth', require('./routes/AuthRoutes'))
+// Profile Router
+app.use('/api/profile', require('./routes/ProfileRoutes'))
+// Goal Router
+app.use('/api/goals', require('./routes/GoalRoutes'))
 // Transaction Router
 app.use('/api/transactions', require('./routes/TransactionRoutes'))
 // Budget Router
@@ -31,10 +36,9 @@ app.use('/api/budgets', require('./routes/BudgetRoutes'))
 app.use('/api/holdings', require('./routes/HoldingRoutes'))
 // Dashboard Router
 app.use('/api/dashboard', require('./routes/DashboardRoutes'))
-// Goal Router
-app.use('/api/goals', require('./routes/GoalRoutes'))
-// Profile Router
-app.use('/api/profile', require('./routes/ProfileRoutes'))
+// Report Router
+app.use('/api/report', require('./routes/ReportRoutes'));
+
 
 
 app.use((err, req, res, next) => {
