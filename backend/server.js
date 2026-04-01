@@ -36,6 +36,9 @@ app.use('/api/budgets', require('./routes/BudgetRoutes'))
 app.use('/api/holdings', require('./routes/HoldingRoutes'))
 // Dashboard Router
 app.use('/api/dashboard', require('./routes/DashboardRoutes'))
+// Report Router
+app.use('/api/report', require('./routes/ReportRoutes'));
+
 
 
 app.use((err, req, res, next) => {
