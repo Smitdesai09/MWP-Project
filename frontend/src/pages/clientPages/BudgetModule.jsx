@@ -10,7 +10,7 @@ import {
   AlertTriangle, CheckCircle2, TrendingDown
 } from 'lucide-react'
 
-// ─── CUSTOM DROPDOWN ─────────────────────────────────────────────
+// ─── CUSTOM DROPDOWN (EXACT COPY FROM TRANSACTION MODULE) ────────
 const CustomDropdown = ({ value, onChange, options, className = '', placeholder = 'Select...' }) => {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef(null)
@@ -49,16 +49,18 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: 3 }, (_, i) => currentYear - 2 + i)
 const MAX_BUDGET_LIMIT = 99999999
+const EXPENSE_CATEGORIES = ['food', 'housing', 'transport', 'shopping', 'health', 'entertainment', 'other']
 
 const monthOptions = MONTHS.map((m, i) => ({ value: i + 1, label: m }))
 const yearOptions = YEARS.map(y => ({ value: y, label: y.toString() }))
+const expenseCategoryOptions = EXPENSE_CATEGORIES.map(cat => ({ value: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) }))
 
 const fmt = (n) => new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n ?? 0)
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
 // ─── Zod Schema ────────────────────────────────────────────────
 const budgetSchema = z.object({
-  category: z.string().min(1, 'Category name is required').max(50, 'Category must be under 50 characters').trim().regex(/^[a-zA-Z]/, 'Must start with a letter').regex(/^[a-zA-Z0-9\s\-_.&']+$/, 'Contains invalid special characters'),
+  category: z.string().min(1, 'Category is required'),
   monthlyLimit: z.preprocess((val) => (val === '' || val === undefined ? undefined : Number(val)), z.number({ required_error: 'Monthly limit is required', invalid_type_error: 'Must be a valid number' }).positive('Must be greater than ₹0').max(MAX_BUDGET_LIMIT, `Cannot exceed ₹${MAX_BUDGET_LIMIT.toLocaleString('en-IN')}`).refine((val) => /^\d+(\.\d{1,2})?$/.test(val.toString()), 'Maximum 2 decimal places allowed'))
 })
 
@@ -90,7 +92,7 @@ function BudgetToast({ title, message, icon: Icon }) {
       </div>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-red-800">{title}</p>
-        <p className="text-xs text-red-500 mt-0.5 leading-relaxed">{message}</p>
+        <p className="text-xs text-red-500 mt-0.5 leading-relaxed whitespace-pre-line">{message}</p>
       </div>
     </div>
   )
@@ -99,7 +101,9 @@ function BudgetToast({ title, message, icon: Icon }) {
 // ─── ADD MODAL ─────────────────────────────────────────────────
 function AddModal({ isOpen, onClose, onSaved }) {
   const defaultValues = { category: '', monthlyLimit: '' }
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({ resolver: zodResolver(budgetSchema), defaultValues })
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, watch, setValue } = useForm({ resolver: zodResolver(budgetSchema), defaultValues })
+
+  const watchCategory = watch('category')
 
   useEffect(() => { if (isOpen) reset(defaultValues) }, [isOpen, reset])
   useEffect(() => {
@@ -113,7 +117,7 @@ function AddModal({ isOpen, onClose, onSaved }) {
     try {
       const payload = { category: data.category.trim().toLowerCase(), monthlyLimit: Number(data.monthlyLimit) }
       const { data: res } = await api.post('/budgets', payload)
-      if (res.success) { toast.success(`"${data.category.trim()}" budget created!`); onSaved(); onClose() }
+      if (res.success) { toast.success(`"${cap(data.category)}" budget created!`); onSaved(); onClose() }
       else { toast.error(res.error || 'Failed to create budget') }
     } catch (err) { toast.error(err?.response?.data?.error || 'Something went wrong') }
   }
@@ -127,14 +131,16 @@ function AddModal({ isOpen, onClose, onSaved }) {
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4" noValidate>
-          <Field label="Category Name">
-            <input className={errors.category ? errorInputCls : inputCls} placeholder="e.g. Food, Transport, Shopping" {...register('category')} maxLength={50} autoComplete="off" autoFocus />
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
+            <CustomDropdown value={watchCategory} onChange={(val) => setValue('category', val)} options={expenseCategoryOptions} />
             {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
-          </Field>
-          <Field label="Monthly Limit (₹)">
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Monthly Limit (₹)</label>
             <input className={errors.monthlyLimit ? errorInputCls : inputCls} type="number" step="0.01" min="0.01" max={MAX_BUDGET_LIMIT} placeholder="e.g. 10000" {...register('monthlyLimit')} onKeyDown={blockInvalidKeys} />
             {errors.monthlyLimit && <p className="text-red-500 text-xs mt-1">{errors.monthlyLimit.message}</p>}
-          </Field>
+          </div>
           <div className="flex gap-2.5 pt-2">
             <button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-60">{isSubmitting && <Loader2 size={14} className="animate-spin" />}Create Budget</button>
@@ -293,51 +299,48 @@ export default function BudgetModule() {
     return () => c.abort()
   }, [fetchBudgets])
 
-  // ─── CONSOLIDATED TOAST LOGIC ────────────────────────────────
+  // ─── SINGLE CONSOLIDATED TOAST ───────────────────────────────
   useEffect(() => {
     if (loading || budgets.length === 0) return
 
     const exceeded = budgets.filter(b => b.percentage >= 100)
     const warning = budgets.filter(b => b.percentage >= 90 && b.percentage < 100)
 
+    if (exceeded.length === 0 && warning.length === 0) return
+
+    const key = `budget-alert-${month}-${year}`
+    if (alertedRef.current.has(key)) return
+    alertedRef.current.add(key)
+
+    const parts = []
     if (exceeded.length > 0) {
-      const key = `exceeded-${month}-${year}`
-      if (!alertedRef.current.has(key)) {
-        alertedRef.current.add(key)
-        const names = exceeded.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
-        const list = names.join(' · ')
-        const msg = exceeded.length === 1
-          ? `${names[0]} has exceeded its limit`
-          : `${exceeded.length} budgets exceeded: ${list}`
-        toast.custom(
-          () => <BudgetToast title="Budgets Exceeded" message={msg} icon={AlertTriangle} />,
-          { duration: 7000, id: key }
-        )
-      }
+      const names = exceeded.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
+      parts.push(exceeded.length === 1
+        ? `${names[0]} has exceeded its limit`
+        : `${exceeded.length} budgets exceeded: ${names.join(' · ')}`
+      )
+    }
+    if (warning.length > 0) {
+      const names = warning.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
+      parts.push(warning.length === 1
+        ? `${names[0]} is near its limit`
+        : `${warning.length} budgets near limit: ${names.join(' · ')}`
+      )
     }
 
-    if (warning.length > 0) {
-      const key = `warning-${month}-${year}`
-      if (!alertedRef.current.has(key)) {
-        alertedRef.current.add(key)
-        const names = warning.map(b => `${cap(b.category)} (${Math.round(b.percentage)}%)`)
-        const list = names.join(' · ')
-        const msg = warning.length === 1
-          ? `${names[0]} is near its limit`
-          : `${warning.length} budgets near limit: ${list}`
-        toast.custom(
-          () => <BudgetToast title="Budget Alerts" message={msg} icon={TrendingDown} />,
-          { duration: 7000, id: key }
-        )
-      }
-    }
+    const title = exceeded.length > 0 ? 'Budgets Exceeded' : 'Budget Alerts'
+    const icon = exceeded.length > 0 ? AlertTriangle : TrendingDown
+
+    toast.custom(
+      () => <BudgetToast title={title} message={parts.join('\n')} icon={icon} />,
+      { duration: 4000, id: key }
+    )
   }, [budgets, loading, month, year])
 
   const refetchAll = useCallback(() => { fetchBudgets() }, [fetchBudgets])
 
   const handleSaveSuccess = useCallback(() => {
-    alertedRef.current.delete(`exceeded-${month}-${year}`)
-    alertedRef.current.delete(`warning-${month}-${year}`)
+    alertedRef.current.delete(`budget-alert-${month}-${year}`)
     refetchAll()
   }, [refetchAll, month, year])
 
