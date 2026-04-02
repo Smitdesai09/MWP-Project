@@ -1,9 +1,22 @@
-import { Toaster } from 'react-hot-toast'
+import { useEffect } from 'react';
+import toast, { Toaster, useToasterStore } from 'react-hot-toast';
 
 export default function AppToaster() {
+  // Access the internal state of react-hot-toast
+  const { toasts } = useToasterStore();
+
+  // Set your desired limit here
+  const TOAST_LIMIT = 5;
+
+  useEffect(() => {
+    toasts
+      .filter((t) => t.visible) // Only look at visible toasts
+      .filter((_, i) => i >= TOAST_LIMIT) // Find any that exceed the limit
+      .forEach((t) => toast.dismiss(t.id)); // Dismiss them
+  }, [toasts]);
+
   return (
     <Toaster
-      limit={3}
       position="top-right"
       containerStyle={{
         top: 20,
@@ -35,7 +48,7 @@ export default function AppToaster() {
             border: '1px solid #fecaca',
           },
         },
-        // ✅ ADD THIS: 90% Warning style
+        // 90% Warning style
         warning: {
           duration: 3000,
           style: {
@@ -48,7 +61,7 @@ export default function AppToaster() {
             secondary: '#FFFBEB',
           }
         },
-        // ✅ ADD THIS: 100% Budget Limit Exceeded style
+        // 100% Budget Limit Exceeded style
         budgetLimit: {
           duration: 4000,
           style: {
@@ -63,5 +76,5 @@ export default function AppToaster() {
         }
       }}
     />
-  )
+  );
 }

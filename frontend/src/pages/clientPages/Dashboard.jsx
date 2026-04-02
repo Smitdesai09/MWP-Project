@@ -253,7 +253,7 @@ function AllocationPie({ allocation, targetAllocation }) {
 }
 
 // ─── Stat Card ───────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loading }) {
+function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', bg = 'bg-gray-50', loading }) {
   const strValue = String(value || '')
   const parts = strValue.split('₹')
   const hasRupee = parts.length === 2
@@ -262,14 +262,14 @@ function StatCard({ label, value, sub, icon: Icon, accent = 'text-gray-900', loa
     <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-        <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className={`w-7 h-7 ${bg} rounded-lg flex items-center justify-center`}>
           <Icon size={14} className={accent} />
         </div>
       </div>
       {loading
         ? <div className="h-8 w-32 bg-gray-100 rounded-lg animate-pulse mb-1" />
         : (
-          <p className="font-mono text-[1.35rem] leading-tight font-semibold tracking-tight mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+          <p className={`font-mono text-[1.35rem] leading-tight font-semibold tracking-tight mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis ${accent}`}>
             {hasRupee ? (
               <>
                 {parts[0]}₹<span className="ml-0.5">{parts[1]}</span>
@@ -307,7 +307,7 @@ function Skeleton({ className }) {
 
 // ─── Main Dashboard ──────────────────────────────────────────────
 export default function Dashboard() {
-  const [data,    setData]    = useState(null)
+  const [data,     setData]     = useState(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState('')
 
@@ -355,26 +355,29 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatCard
           label="Balance"
-          value={loading ? '—' : `${isBalance ? '' : '-'}${fmtShort(tx.balance)}`}
-          sub="Income − Expenses"
+          value={loading ? '—' : fmtShort(tx.balance)}
+          sub="Monthly Savings"
           icon={Wallet}
           accent={isBalance ? 'text-gray-900' : 'text-red-500'}
+          bg={isBalance ? 'bg-gray-50' : 'bg-red-50'}
           loading={loading}
         />
         <StatCard
           label="Total Income"
           value={loading ? '—' : fmtShort(tx.totalIncome)}
-          sub="All time"
+          sub="This Month"
           icon={TrendingUp}
           accent="text-emerald-600"
+          bg="bg-emerald-50"
           loading={loading}
         />
         <StatCard
           label="Total Expense"
           value={loading ? '—' : fmtShort(tx.totalExpense)}
-          sub="All time"
+          sub="This Month"
           icon={TrendingDown}
           accent="text-red-500"
+          bg="bg-red-50"
           loading={loading}
         />
       </div>
