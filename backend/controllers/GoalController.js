@@ -37,19 +37,36 @@ exports.createGoal = async (req, res, next) => {
         next(err)
     }
 }
+
 exports.getGoals = async (req, res, next) => {
     try {
         const userId = req.user._id;
+        const { search, type } = req.query; // <-- type comes from frontend
 
-        const goals = await goalModel.find({ userId }).sort({ createdAt: -1 });
-        if (!goals) {
-            return res.status(404).json({ success: false, message: 'goal not found' })
+        const query = { userId };
+
+        if (search) {
+            query.name = { $regex: search, $options: "i" };
         }
-        return res.status(200).json({ success: true, count: goals.length, data: goals });
+
+        if (type && ['sip', 'lump_sum'].includes(type)) {
+            query.planType = type;
+        }
+
+        const goals = await goalModel.find(query).sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: goals.length,
+            total: goals.length, // or implement proper pagination total
+            totalPage: 1,        // placeholder if no pagination
+            data: goals
+        });
     } catch (err) {
-        next(err)
+        next(err);
     }
-}
+};
+
 exports.editGoal = async (req, res, next) => {
     try {
         const userId = req.user._id;
