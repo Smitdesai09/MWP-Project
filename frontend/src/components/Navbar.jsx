@@ -9,8 +9,7 @@ export default function Navbar() {
   const navLinks = [
     { label: 'Features', href: '#features' },
     { label: 'Calculators', href: '#calculators' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Reviews', href: '#reviews' },
   ]
 
    const handleLogoClick = (e) => {

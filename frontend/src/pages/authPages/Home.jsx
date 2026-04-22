@@ -9,13 +9,11 @@ import {
   BookOpen,
   ArrowRight,
   Star,
-  ChevronRight,
   Wallet,
   PiggyBank,
   LineChart,
   Users,
-  CheckCircle2,
-  Zap
+  CheckCircle2
 } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -49,49 +47,6 @@ const StatCard = ({ value, label, icon: Icon }) => (
   </div>
 )
 
-const PlanCard = ({ name, price, features, highlight }) => (
-  <div
-    className={`relative p-7 rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
-      highlight
-        ? 'bg-gray-900 border-gray-900 text-white shadow-2xl scale-105'
-        : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-lg'
-    }`}
-  >
-    {highlight && (
-      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-white text-gray-900 text-xs font-bold rounded-full shadow-md">
-        MOST POPULAR
-      </div>
-    )}
-    <div className="mb-5">
-      <p className="text-xs font-semibold tracking-widest uppercase mb-2 text-gray-400">{name}</p>
-      <div className="flex items-end gap-1">
-        <span className={`font-display text-4xl font-bold ${highlight ? 'text-white' : 'text-gray-900'}`}>
-          {price}
-        </span>
-        {price !== 'Free' && <span className="text-sm mb-1.5 text-gray-400">/month</span>}
-      </div>
-    </div>
-    <ul className="space-y-3 mb-7">
-      {features.map((f, i) => (
-        <li key={i} className="flex items-center gap-2.5">
-          <CheckCircle2 size={15} className={highlight ? 'text-green-400' : 'text-green-500'} />
-          <span className={`text-sm ${highlight ? 'text-gray-300' : 'text-gray-600'}`}>{f}</span>
-        </li>
-      ))}
-    </ul>
-    <Link
-      to="/register"
-      className={`block w-full text-center py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-        highlight
-          ? 'bg-white text-gray-900 hover:bg-gray-100'
-          : 'bg-gray-900 text-white hover:bg-gray-700'
-      }`}
-    >
-      Get Started
-    </Link>
-  </div>
-)
-
 const TestimonialCard = ({ name, role, text, rating }) => (
   <div className="p-6 bg-white rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow duration-300">
     <div className="flex gap-0.5 mb-4">
@@ -114,25 +69,17 @@ const TestimonialCard = ({ name, role, text, rating }) => (
 
 export default function Home() {
 
-  const { user, loading } = useAuth() // 👈 add this
+  const { user, loading } = useAuth()
 
-  // 👇 add this block
-  if (loading) return null // or a spinner
+  if (loading) return null
   if (user) return <Navigate to="/client/dashboard" replace />
 
   const features = [
     { icon: Wallet, title: 'Expense Tracking', description: 'Log income and expenses by category with smart monthly budget alerts and visual charts.' },
     { icon: Target, title: 'Goal Planning', description: 'Set financial goals with corpus targets. Get required SIP or lump-sum calculations instantly.' },
     { icon: LineChart, title: 'Portfolio Tracking', description: 'Monitor MF, ELSS, PPF, NPS, FD, gold and equity holdings with gain/loss analytics.' },
-    { icon: ShieldCheck, title: 'Risk Profiling', description: 'Answer a quick questionnaire and get a personalized asset-allocation recommendation.' },
-    { icon: Calculator, title: 'Smart Calculators', description: 'SIP, EMI, CAGR, retirement, and inflation calculators — no spreadsheets needed.' },
-    { icon: BookOpen, title: 'Expert Guidance', description: 'Advisor-curated notes, model portfolios, and a content hub with articles and FAQs.' },
-  ]
-
-  const plans = [
-    { name: 'Free', price: 'Free', features: ['Expense tracking', 'Basic goal planner', '2 calculators', 'Community access'] },
-    { name: 'Basic', price: '₹199', features: ['Everything in Free', 'Portfolio tracking', 'All calculators', 'Monthly PDF report', 'CSV export'], highlight: true },
-    { name: 'Premium', price: '₹499', features: ['Everything in Basic', 'Advisor consultations', 'Secure document vault', 'Priority support', 'Custom rebalancing'] },
+    { icon: ShieldCheck, title: 'Smart Recommendations', description: 'Get personalized portfolio recommendation based on your risk profile.' },
+    { icon: Calculator, title: 'Smart Calculators', description: 'SIP, EMI, CAGR, retirement, and inflation calculators — no spreadsheets needed.' }
   ]
 
   const testimonials = [
@@ -146,14 +93,8 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="pt-28 pb-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="animate-fade-up">
-            <Badge>
-              <Zap size={10} />
-              Now with Advisor Consultations
-            </Badge>
-          </div>
 
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mt-6 mb-6 leading-[1.08] tracking-tight animate-fade-up-delay-1">
             Your wealth,
@@ -162,7 +103,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-10 animate-fade-up-delay-2">
-            Track expenses, plan goals, monitor investments, and get expert guidance — all in one clean, privacy-first portal built for Indian investors.
+            Track expenses, plan goals, monitor investments, and understand your finances clearly — all in one clean, privacy-first portal built for Indian investors.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center animate-fade-up-delay-3">
@@ -172,25 +113,17 @@ export default function Home() {
             >
               Start for free <ArrowRight size={16} />
             </Link>
-
-            {/* <Link
-              to="#features"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
-            >
-              Explore features <ChevronRight size={16} />
-            </Link> */}
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
       <section className="py-12 border-y border-gray-100 bg-white">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-gray-100">
             <StatCard value="10K+" label="Active Users" icon={Users} />
             <StatCard value="₹50Cr+" label="Wealth Tracked" icon={TrendingUp} />
-            <StatCard value="98%" label="Goal Accuracy" icon={Target} />
-            <StatCard value="4.9★" label="User Rating" icon={Star} />
+            <StatCard value="4.9★" label="User Reviews" icon={Star} />
           </div>
         </div>
       </section>
@@ -213,16 +146,24 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
+            {features.slice(0, 3).map((f, i) => (
               <FeatureCard key={f.title} {...f} delay={`${i * 0.07}s`} />
+            ))}
+          </div>
+
+          <div className="flex justify-center gap-5">
+            {features.slice(3).map((f, i) => (
+              <div className="w-full sm:w-[48%] lg:w-[32%]" key={f.title}>
+                <FeatureCard {...f} delay={`${(i + 3) * 0.07}s`} />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Calculators CTA */}
-      <section id="calculators" className="py-16 px-4 bg-gray-900">
+      <section id="calculators" className="py-16 px-4 bg-gray-900 scroll-mt-24">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="font-display text-3xl font-bold text-white mb-2">Free financial calculators</h2>
@@ -237,37 +178,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#fafaf8]">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <Badge>
-              <PiggyBank size={10} />
-              Pricing
-            </Badge>
-            <h2 className="font-display text-4xl sm:text-5xl font-bold text-gray-900 mt-4 mb-4 tracking-tight">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-base">
-              Start free, upgrade when you're ready. No hidden charges, no commitment.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 items-center">
-            {plans.map((p) => (
-              <PlanCard key={p.name} {...p} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Reviews Section */}
+      <section id="reviews" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <Badge>
               <Star size={10} />
-              Testimonials
+              Reviews
             </Badge>
             <h2 className="font-display text-4xl font-bold text-gray-900 mt-4 mb-3 tracking-tight">
               Trusted by real investors
@@ -320,7 +237,7 @@ export default function Home() {
               Wealth <span className="font-normal text-gray-400">Planner</span>
             </span>
           </div>
-         
+
           <p className="text-xs text-gray-400">© 2026 Wealth Planner</p>
         </div>
       </footer>
