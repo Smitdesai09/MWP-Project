@@ -1,23 +1,23 @@
-import { useState }          from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useForm }           from 'react-hook-form'
-import { zodResolver }       from '@hookform/resolvers/zod'
-import toast                 from 'react-hot-toast'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import toast from 'react-hot-toast'
 import {
   TrendingUp, Mail, Lock, Eye, EyeOff,
   AlertCircle, ArrowRight, ChevronLeft, Loader2
 } from 'lucide-react'
-import { loginSchema }  from '../../lib/schemas.js'
-import API              from '../../services/api.js'
-import { useAuth }      from '../../context/AuthContext.jsx'
+import { loginSchema } from '../../lib/schemas.js'
+import API from '../../services/api.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 // ── Navigate based on role ───────────────────────────
 const navigateAfterLogin = (role, navigate) => {
   switch (role) {
-    case 'client':  navigate('/client/dashboard');  break
+    case 'client': navigate('/client/dashboard'); break
     case 'advisor': navigate('/advisor/dashboard'); break
-    case 'admin':   navigate('/admin/dashboard');   break
-    default:        navigate('/login')
+    case 'admin': navigate('/admin/dashboard'); break
+    default: navigate('/login')
   }
 }
 
@@ -78,17 +78,17 @@ function ErrorBanner({ message }) {
 
 // ── Login Page ───────────────────────────────────────
 export default function Login() {
-  const navigate             = useNavigate()
-  const { login }            = useAuth()
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
-  const [serverError,  setServerError]  = useState('')
+  const [serverError, setServerError] = useState('')
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver:      zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   })
 
@@ -96,11 +96,11 @@ export default function Login() {
     setServerError('')
     try {
       const res = await API.post('/auth/login', {
-        email:    data.email,
+        email: data.email,
         password: data.password
       })
 
-      const message  = res.data?.message || 'Login successful'
+      const message = res.data?.message || 'Login successful'
       const userData = res.data?.user    // { id, name, email, role }
 
       login(userData)  // ✅ update context
@@ -138,7 +138,11 @@ export default function Login() {
             Track every rupee, plan every goal, and watch your wealth grow — all in one place.
           </p>
           <div className="flex flex-col gap-3">
-            {['Portfolio & goal tracking', 'Expert advisor guidance', 'Smart SIP calculators'].map((item) => (
+            {[
+              'Income & expense tracking with smart budgets',
+              'Portfolio and goal tracking',
+              'Powerful SIP and financial planning Caculators'
+            ].map((item) => (
               <div key={item} className="flex items-center gap-2.5">
                 <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
                   <ArrowRight size={10} color="white" />

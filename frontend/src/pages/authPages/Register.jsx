@@ -28,42 +28,7 @@ function getStrength(password) {
   return { score, ...map[score] }
 }
 
-function RoleSelector({ value, onChange }) {
-  const roles = [
-    { id: 'client', label: 'Client', description: 'Manage personal wealth', icon: User },
-    { id: 'advisor', label: 'Advisor', description: 'Manage client portfolios', icon: Briefcase },
-  ]
-  return (
-    <div className="grid grid-cols-2 gap-2.5">
-      {roles.map(({ id, label, description, icon: Icon }) => {
-        const selected = value === id
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={`
-              flex items-center gap-3 px-4 py-3 rounded-xl border text-left
-              transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20
-              ${selected
-                ? 'bg-gray-900 border-gray-900 text-white shadow-md -translate-y-0.5'
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-400 hover:bg-white'
-              }
-            `}
-          >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selected ? 'bg-white/15' : 'bg-gray-200'}`}>
-              <Icon size={15} className={selected ? 'text-white' : 'text-gray-500'} />
-            </div>
-            <div className="min-w-0">
-              <p className={`text-sm font-semibold leading-tight ${selected ? 'text-white' : 'text-gray-800'}`}>{label}</p>
-              <p className={`text-[11px] leading-tight mt-0.5 truncate ${selected ? 'text-white/60' : 'text-gray-400'}`}>{description}</p>
-            </div>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
+
 
 function Field({ label, id, icon: Icon, type = 'text', placeholder, register, error, rightSlot, hint }) {
   return (
@@ -121,7 +86,7 @@ export default function Register() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [role, setRole] = useState('client')
+  // const [role, setRole] = useState('client')
   const [serverError, setServerError] = useState('')
 
   const {
@@ -150,7 +115,7 @@ export default function Register() {
         name: data.fullName,
         email: data.email,
         password: data.password,
-        role
+        role: 'client'
       })
       toast.success('Account created! Welcome aboard 🎉')
       setTimeout(() => navigate('/login'), 1000)
@@ -222,8 +187,6 @@ export default function Register() {
             <form onSubmit={handleSubmit(handleRegister)} noValidate className="space-y-4">
 
               <ErrorBanner message={serverError} />
-
-              <RoleSelector value={role} onChange={setRole} />
 
               <Field
                 label="Full Name"

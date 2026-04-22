@@ -101,7 +101,7 @@ exports.login = async (req, res) => {
             httpOnly: true,
             secure: false, // true in production with https
             sameSite: 'lax',
-            maxAge: 15 * 60 * 1000
+            maxAge: 28 * 24 * 60 * 60 * 1000
         })
 
         return res.status(200).json({
@@ -273,9 +273,11 @@ exports.resetPassword = async (req, res) => {
 =========================== */
 exports.getMe = async (req, res) => {
     try {
-        // req.user = { id, email, role } from JWT
-        // fetch from DB to get name since its not in JWT
-        const user = await UserModel.findById(req.user.id).select('-password')
+        // FIX: Use req.user._id instead of req.user.id
+        // Also ensure you handle the case where req.user might not have _id if middleware failed silently (unlikely but safe)
+        const userId = req.user._id || req.user.id;
+
+        const user = await UserModel.findById(userId).select('-password')
 
         if (!user) {
             return res.status(404).json({
