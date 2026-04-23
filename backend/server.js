@@ -17,11 +17,13 @@ app.set('trust proxy', 1)
 // Middleware
 app.use(express.json())
 app.use(cors({
-   origin: "http://localhost:5173",
-   credentials: true
-}))
+  origin: [
+    "http://localhost:5173",
+    "https://my-wealth-planner.onrender.com"
+  ],
+  credentials: true
+}));
 app.use(cookiparser())
-// app.use(Globallimiter)
 
 // Auth Router
 app.use('/api/auth', require('./routes/AuthRoutes'))
