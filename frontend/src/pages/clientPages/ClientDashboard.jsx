@@ -14,7 +14,7 @@ import BudgetModule from './BudgetModule.jsx'
 import Transaction from './Transaction.jsx'
 import GoalModule from './GoalModule.jsx'
 import Dashboard from './Dashboard.jsx'
-import HoldingsModule from './Holdingsmodule.jsx'
+import HoldingsModule from './HoldingsModule.jsx'
 import CalculatorsList from '../../components/CalculatorsList.jsx'
 import CalculatorView from '../../components/CalculatorView.jsx'
 
